@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Histograms · Image Processing Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="histograms">
+<main>
+  <h1>Histograms</h1>
+  <div id="image-bar"></div>
+
+  <!-- ============ Theory ============ -->
+  <section class="part" id="theory" data-title="Theory">
+    <ul class="points">
+      <li>A <span class="term" data-term="histogram">histogram</span> counts how many pixels have each gray level 0…255. Positions do not matter.</li>
+      <li>Pixels on the left: dark image. On the right: bright (<span class="term" data-term="brightness">brightness</span>).</li>
+      <li>Narrow hill: low <span class="term" data-term="contrast">contrast</span>. Wide: high contrast.</li>
+      <li>Two <span class="term" data-term="peak">peaks</span>: two groups of pixels (e.g. sky and grass).</li>
+    </ul>
+    <div class="grid-3" id="reading-examples" style="margin-top:1.5rem"></div>
+  </section>
+
+  <!-- ============ Demo ============ -->
+  <section class="part" id="demo" data-title="Demo">
+    <div class="controls" style="margin-top:0">
+      <label>Brightness <input type="range" id="h-beta" min="-120" max="120" value="0"> <b id="h-beta-val">0</b></label>
+      <label>Contrast <input type="range" id="h-alpha" min="0.2" max="3" step="0.1" value="1"> <b id="h-alpha-val">1.0</b></label>
+      <label><input type="checkbox" id="h-neg"> <span class="term" data-term="negative">Negative</span></label>
+      <button class="btn secondary" type="button" id="h-reset">Reset</button>
+    </div>
+    <div class="code"><pre id="h-code"></pre></div>
+    <div class="grid-2">
+      <canvas id="h-image" style="width:100%;border-radius:8px"></canvas>
+      <div>
+        <canvas id="h-hist" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px"></canvas>
+        <p class="caption" id="h-stats"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Code ============ -->
+  <section class="part" id="code" data-title="Code">
+    <div id="game-live-hist"></div>
+    <div id="game-what-if"></div>
+    <div id="game-order-hist"></div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise</h3>
+      <p>Count the pixels of each gray level with NumPy, check the total, find the most common level, plot it.</p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+# your code here
+</pre></div>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+hist = np.bincount(gray.ravel(), minlength=256)
+print(len(hist), hist.sum(), gray.size)
+print(hist.argmax(), hist.max())
+print(np.count_nonzero(hist))
+
+plt.bar(range(256), hist, width=1)
+plt.show()
+</pre></div>
+      </details>
+      <div class="expected" id="expected-hist"></div>
+    </div>
+  </section>
+
+  <!-- ============ No code ============ -->
+  <section class="part" id="nocode" data-title="No code">
+    <div id="game-match-hist"></div>
+    <div class="quiz">
+      <p class="q">All bars sit between 100 and 140. The image is…</p>
+      <div class="choices">
+        <button type="button" data-correct>low contrast</button>
+        <button type="button">very bright</button>
+        <button type="button">very dark</button>
+      </div>
+      <p class="explain" hidden>A narrow histogram means similar grays everywhere.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">You swap the left and right halves of the image. The histogram…</p>
+      <div class="choices">
+        <button type="button" data-correct>stays the same</button>
+        <button type="button">is mirrored</button>
+      </div>
+      <p class="explain" hidden>It only counts values, not positions.</p>
+    </div>
+  </section>
+</main>
+<script src="js/test-image.js"></script>
+<script src="js/glossary-data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/games.js"></script>
+<script src="js/pages/histograms.js"></script>
+</body>
+</html>

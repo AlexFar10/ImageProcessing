@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grid of Numbers · Image Processing Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="grid">
+<main>
+  <h1>The image as a grid of numbers</h1>
+  <div id="image-bar"></div>
+
+  <!-- ============ Theory ============ -->
+  <section class="part" id="theory" data-title="Theory">
+    <ul class="points">
+      <li>An image is a grid of <span class="term" data-term="pixel">pixels</span>. Gray pixel: 1 number (0 black … 255 white). Color pixel: 3 numbers <code>[B G R]</code>.</li>
+      <li><code>img[row, col]</code>: <span class="term" data-term="row">row</span> first, counted from the top-left corner (0, 0).</li>
+      <li><code>img.shape</code> = (rows, columns, channels).</li>
+      <li>OpenCV drawing takes points as <span class="term" data-term="opencv-point">(x, y) = (col, row)</span>.</li>
+      <li><span class="term" data-term="uint8">uint8</span> holds 0…255: NumPy <code>250 + 10 → 4</code> (<span class="term" data-term="wrap-around">wraps</span>), <code>cv2.add → 255</code> (<span class="term" data-term="saturation">saturates</span>).</li>
+      <li><code>img[a:b, c:d]</code> is a <span class="term" data-term="view">view</span>: changing it changes <code>img</code>. Use <code>.copy()</code> for a separate image.</li>
+    </ul>
+  </section>
+
+  <!-- ============ Demo ============ -->
+  <section class="part" id="demo" data-title="Demo">
+    <div class="grid-2">
+      <div>
+        <canvas id="inspect-canvas" class="pixelated" style="width:100%;cursor:crosshair;touch-action:none;border-radius:8px"></canvas>
+        <div class="controls">
+          <label><input type="radio" name="inspect-mode" value="color" checked> [B G R]</label>
+          <label><input type="radio" name="inspect-mode" value="gray"> gray</label>
+        </div>
+      </div>
+      <div>
+        <div class="readout" id="inspect-readout"></div>
+        <div style="overflow-x:auto"><table class="inspector-zoom" id="inspect-zoom"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Code ============ -->
+  <section class="part" id="code" data-title="Code">
+    <div id="game-predict"></div>
+    <div id="game-live-slice"></div>
+    <div id="game-bug-circle"></div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise</h3>
+      <p>Print shape, dtype, min, max, mean and the centre pixel. Black out the top-left 50 × 50 corner, print the mean again.
+        Image: <a href="images/landscape.png" download>landscape.png</a></p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+
+img = cv2.imread("landscape.png")
+h, w = img.shape[:2]
+
+# your code here
+</pre></div>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+
+img = cv2.imread("landscape.png")
+h, w = img.shape[:2]
+
+print(img.shape)
+print(img.dtype)
+print(img.min(), img.max(), round(img.mean(), 2))
+print(img[h // 2, w // 2])
+
+img[0:50, 0:50] = 0
+print(round(img.mean(), 2))
+</pre></div>
+      </details>
+      <div class="expected" id="expected-grid"></div>
+    </div>
+  </section>
+
+  <!-- ============ No code ============ -->
+  <section class="part" id="nocode" data-title="No code">
+    <div id="game-click-pixel"></div>
+    <div id="game-slice-box"></div>
+    <div class="quiz">
+      <p class="q"><code>img.shape == (480, 640, 3)</code>. How wide is the image?</p>
+      <div class="choices">
+        <button type="button">480</button>
+        <button type="button" data-correct>640</button>
+        <button type="button">3</button>
+      </div>
+      <p class="explain" hidden>Shape is (rows, columns, channels): width = columns = 640.</p>
+    </div>
+  </section>
+</main>
+<script src="js/test-image.js"></script>
+<script src="js/glossary-data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/games.js"></script>
+<script src="js/pages/grid.js"></script>
+</body>
+</html>

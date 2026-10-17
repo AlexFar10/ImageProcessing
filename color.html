@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Color and Grayscale · Image Processing Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="color">
+<main>
+  <h1>Color and grayscale</h1>
+  <div id="image-bar"></div>
+
+  <!-- ============ Theory ============ -->
+  <section class="part" id="theory" data-title="Theory">
+    <ul class="points">
+      <li>A color is red, green and blue light, each 0…255 (<span class="term" data-term="rgb">RGB</span>). Red + green = yellow, all three = white.</li>
+      <li>OpenCV stores <span class="term" data-term="bgr">B, G, R</span>: <code>img[:, :, 0]</code> is blue, <code>img[:, :, 2]</code> is red.</li>
+      <li>Plain average <code>(R + G + B) / 3</code> treats all colors the same.</li>
+      <li>Our eyes see green brightest, blue darkest, so <span class="term" data-term="grayscale">gray</span> uses a
+        <span class="term" data-term="weighted-average">weighted average</span>: <code>0.299 R + 0.587 G + 0.114 B</code> (= <code>cv2.cvtColor</code>).</li>
+    </ul>
+    <div class="grid-3" id="pure-colors" style="margin-top:1.5rem"></div>
+  </section>
+
+  <!-- ============ Demo ============ -->
+  <section class="part" id="demo" data-title="Demo">
+    <div class="grid-2">
+      <div class="controls" style="flex-direction:column;align-items:stretch;margin:0">
+        <label>R <input type="range" id="rgb-r" min="0" max="255" value="230"> <span id="rgb-r-val">230</span></label>
+        <label>G <input type="range" id="rgb-g" min="0" max="255" value="180"> <span id="rgb-g-val">180</span></label>
+        <label>B <input type="range" id="rgb-b" min="0" max="255" value="40"> <span id="rgb-b-val">40</span></label>
+        <div class="readout" id="rgb-readout"></div>
+      </div>
+      <div class="row-3">
+        <div><div class="swatch" id="swatch-color"></div><p class="caption">color</p></div>
+        <div><div class="swatch" id="swatch-avg"></div><p class="caption">average</p></div>
+        <div><div class="swatch" id="swatch-weighted"></div><p class="caption">weighted</p></div>
+      </div>
+    </div>
+    <h2>Click a pixel</h2>
+    <div class="grid-2">
+      <canvas id="step-canvas" class="pixelated" style="width:100%;cursor:crosshair;border-radius:8px"></canvas>
+      <div class="steps" id="steps"></div>
+    </div>
+    <div class="grid-3" id="gray-compare" style="margin-top:1.4rem"></div>
+  </section>
+
+  <!-- ============ Code ============ -->
+  <section class="part" id="code" data-title="Code">
+    <div id="game-fill-weights"></div>
+    <div id="game-bug-weights"></div>
+    <div id="game-code-image"></div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise</h3>
+      <p>Make <code>avg</code> and <code>weighted</code> by hand, compare with <code>cv2.cvtColor</code>: means, centre pixel, how many pixels differ.</p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+
+img = cv2.imread("landscape.png")
+b, g, r = cv2.split(img.astype(np.float64))
+ref = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# your code here
+</pre></div>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+
+img = cv2.imread("landscape.png")
+b, g, r = cv2.split(img.astype(np.float64))
+ref = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+avg = np.round((b + g + r) / 3).astype(np.uint8)
+weighted = 0.114 * b + 0.587 * g + 0.299 * r
+weighted = np.clip(np.round(weighted), 0, 255).astype(np.uint8)
+
+print(round(avg.mean(), 2), round(weighted.mean(), 2), round(ref.mean(), 2))
+h, w = ref.shape
+print(avg[h // 2, w // 2], weighted[h // 2, w // 2], ref[h // 2, w // 2])
+diff = np.abs(weighted.astype(int) - ref.astype(int))
+print(np.count_nonzero(diff), diff.max())
+</pre></div>
+      </details>
+      <div class="expected" id="expected-color"></div>
+    </div>
+  </section>
+
+  <!-- ============ No code ============ -->
+  <section class="part" id="nocode" data-title="No code">
+    <div id="game-target-color"></div>
+    <div id="game-which-channel"></div>
+    <div class="quiz">
+      <p class="q">In OpenCV, <code>(255, 0, 0)</code> is…</p>
+      <div class="choices">
+        <button type="button">red</button>
+        <button type="button" data-correct>blue</button>
+        <button type="button">green</button>
+      </div>
+      <p class="explain" hidden>OpenCV order is B, G, R.</p>
+    </div>
+  </section>
+</main>
+<script src="js/test-image.js"></script>
+<script src="js/glossary-data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/games.js"></script>
+<script src="js/pages/color.js"></script>
+</body>
+</html>
