@@ -24,6 +24,8 @@ IP.SECTIONS = [
   { id: 'color', file: 'color.html', short: 'Color & gray', title: 'Color and grayscale' },
   { id: 'quantization', file: 'quantization.html', short: 'Quantization', title: 'Quantization and dithering' },
   { id: 'histograms', file: 'histograms.html', short: 'Histograms', title: 'Histograms' },
+  { id: 'pointops', file: 'pointops.html', short: 'Point operations', title: 'Point operations' },
+  { id: 'binarization', file: 'binarization.html', short: 'Binarization', title: 'Binarization' },
   { id: 'glossary', file: 'glossary.html', short: 'Glossary', title: 'Glossary' }
 ];
 
@@ -402,6 +404,105 @@ IP.histogram = function (g) {
   return hist;
 };
 
+// np.cumsum(hist): H[i] = number of pixels with value <= i
+IP.cumulative = function (hist) {
+  var out = [], sum = 0;
+  for (var i = 0; i < hist.length; i++) { sum += hist[i]; out.push(sum); }
+  return out;
+};
+
+// lut[gray]: apply a lookup table of 256 values to every pixel
+IP.applyLut = function (g, lut) { return IP.mapGray(g, function (x) { return lut[x]; }); };
+
+// Histogram equalization by hand (the lecture's 4 steps):
+//   cdf = np.cumsum(hist);  lut = np.round(cdf / cdf[-1] * 255).astype(np.uint8)
+IP.equalizeLut = function (g) {
+  var cdf = IP.cumulative(IP.histogram(g)), n = cdf[255];
+  return cdf.map(function (h) { return IP.roundHalfEven(h / n * 255); });
+};
+
+// cv2.equalizeHist(gray): OpenCV's version starts counting after the darkest used level,
+// and works in float32 (Math.fround copies that).
+IP.cvEqualizeLut = function (g) {
+  var hist = IP.histogram(g), total = g.data.length, lut = new Array(256).fill(0);
+  var i = 0;
+  while (hist[i] === 0) i++;
+  if (hist[i] === total) { lut.fill(i); return lut; }   // a flat image stays as it is
+  var scale = Math.fround(255 / Math.fround(total - hist[i]));
+  var sum = 0;
+  for (i++; i < 256; i++) {
+    sum += hist[i];
+    lut[i] = clip255(IP.roundHalfEven(Math.fround(sum * scale)));
+  }
+  return lut;
+};
+
+// Contrast stretching: (gray - lo) * 255 / (hi - lo), rounded and clipped
+//   out = np.clip(np.round((gray.astype(np.float64) - lo) * 255 / (hi - lo)), 0, 255).astype(np.uint8)
+IP.stretchLut = function (lo, hi) {
+  var lut = [];
+  for (var v = 0; v < 256; v++) lut.push(hi > lo ? clip255(IP.roundHalfEven((v - lo) * 255 / (hi - lo))) : v);
+  return lut;
+};
+
+// Gamma: out = np.round(255 * (gray / 255.0) ** gamma)
+IP.gammaLut = function (gamma) {
+  var lut = [];
+  for (var v = 0; v < 256; v++) lut.push(IP.roundHalfEven(255 * Math.pow(v / 255, gamma)));
+  return lut;
+};
+
+// Log: out = np.round(255 / np.log(256) * np.log(1 + gray))
+IP.logLut = function () {
+  var lut = [];
+  for (var v = 0; v < 256; v++) lut.push(IP.roundHalfEven(255 / Math.log(256) * Math.log(1 + v)));
+  return lut;
+};
+
+// cv2.threshold(gray, T, 255, cv2.THRESH_BINARY): 255 where gray > T, else 0 (INV swaps them)
+IP.threshold = function (g, T, inverse) {
+  return IP.mapGray(g, function (x) { return (x > T) !== Boolean(inverse) ? 255 : 0; });
+};
+
+// The local mean that cv2.adaptiveThreshold(..., ADAPTIVE_THRESH_MEAN_C, ...) uses:
+// a block x block box filter with "replicate" borders, rounded back to uint8.
+IP.boxMean = function (g, block) {
+  var w = g.width, h = g.height, r = (block - 1) / 2, out = IP.makeGray(w, h);
+  var cols = new Float64Array(w);   // running column sums over the current window of rows
+  function clampR(y) { return y < 0 ? 0 : y >= h ? h - 1 : y; }
+  function clampC(x) { return x < 0 ? 0 : x >= w ? w - 1 : x; }
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var s = 0;
+      for (var dy = -r; dy <= r; dy++) s += g.data[clampR(y + dy) * w + x];
+      cols[x] = s;
+    }
+    for (x = 0; x < w; x++) {
+      var sum = 0;
+      for (var dx = -r; dx <= r; dx++) sum += cols[clampC(x + dx)];
+      out.data[y * w + x] = IP.roundHalfEven(sum / (block * block));
+    }
+  }
+  return out;
+};
+
+// cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, block, C):
+// white where the pixel is brighter than (local mean - C)
+IP.adaptiveMean = function (g, block, C) {
+  var mean = IP.boxMean(g, block), idelta = Math.ceil(C);
+  var out = IP.makeGray(g.width, g.height);
+  for (var i = 0; i < g.data.length; i++) out.data[i] = g.data[i] - mean.data[i] > -idelta ? 255 : 0;
+  return out;
+};
+
+// Uneven light, as in the lab: the left side gets darker.
+//   shade = 0.3 + 0.7 * np.arange(w) / (w - 1);  dark = (gray * shade).astype(np.uint8)
+IP.unevenLight = function (g) {
+  var w = g.width, out = IP.makeGray(g.width, g.height);
+  for (var i = 0; i < g.data.length; i++) out.data[i] = Math.floor(g.data[i] * (0.3 + 0.7 * (i % w) / (w - 1)));
+  return out;
+};
+
 // min, max, mean and std of any list of numbers
 IP.stats = function (data) {
   var min = Infinity, max = -Infinity, sum = 0, n = data.length;
@@ -479,9 +580,11 @@ IP.figure = function (img, caption) {
 };
 
 // Draw a histogram (a list of counts) as bars.
-// opts: { from, to } value range shown, band: [lo, hi] shaded area, clipTallest: true to cut the highest bar
+// opts: { from, to } value range shown, band: [lo, hi] shaded area, line: a value marked with a red line,
+//       clipTallest: true to cut the highest bar
 IP.drawHistogram = function (canvas, hist, opts) {
   opts = opts || {};
+  var from = opts.from == null ? 0 : opts.from, to = opts.to == null ? 255 : opts.to;
   var W = canvas.width = 512, H = canvas.height = 200;
   var ctx = canvas.getContext('2d');
   var pad = { l: 8, r: 8, t: 10, b: 22 };
@@ -498,8 +601,8 @@ IP.drawHistogram = function (canvas, hist, opts) {
 
   var n = hist.length, barW = plotW / n;
   if (opts.band) {
-    var a = (opts.band[0] - opts.from) / (opts.to - opts.from) * plotW;
-    var b = (opts.band[1] - opts.from) / (opts.to - opts.from) * plotW;
+    var a = (opts.band[0] - from) / (to + 1 - from) * plotW;
+    var b = (opts.band[1] - from) / (to + 1 - from) * plotW;
     ctx.fillStyle = 'rgba(47, 111, 222, 0.10)';
     ctx.fillRect(pad.l + Math.max(0, a), pad.t, Math.min(plotW, b) - Math.max(0, a), plotH);
   }
@@ -518,12 +621,36 @@ IP.drawHistogram = function (canvas, hist, opts) {
   ctx.fillRect(pad.l, pad.t + plotH, plotW, 1);
   ctx.font = '12px system-ui, sans-serif';
   ctx.textAlign = 'center';
-  var from = opts.from == null ? 0 : opts.from, to = opts.to == null ? 255 : opts.to;
   (opts.ticks || [0, 64, 128, 192, 255]).forEach(function (v) {
     var x = pad.l + (v - from) / (to - from) * plotW;
     ctx.fillText(String(v), Math.min(Math.max(x, 14), W - 14), H - 6);
   });
   if (cut) { ctx.textAlign = 'right'; ctx.fillStyle = '#6b7280'; ctx.fillText('tallest bar cut to fit', W - pad.r, pad.t + 12); }
+  if (opts.line != null) {
+    var lx = pad.l + (opts.line + 0.5 - from) / (to + 1 - from) * plotW;
+    ctx.fillStyle = '#d64545';
+    ctx.fillRect(lx - 1, pad.t, 2, plotH);
+  }
+  return canvas;
+};
+
+// Draw a transfer curve out = lut[in] in a square box (input left to right, output bottom to top).
+IP.drawCurve = function (canvas, lut) {
+  var S = canvas.width = canvas.height = 260, pad = 2, size = S - 2 * pad;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, S, S);
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(pad, pad, size, size);
+  ctx.beginPath(); ctx.moveTo(pad, pad + size); ctx.lineTo(pad + size, pad); ctx.stroke(); // identity, for comparison
+  ctx.strokeStyle = '#2f6fde';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (var i = 0; i < 256; i++) {
+    var x = pad + i / 255 * size, y = pad + size - lut[i] / 255 * size;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
   return canvas;
 };
 // Small histogram for games: a single huge bar (like a pile-up at 0) is cut so the rest stays readable.

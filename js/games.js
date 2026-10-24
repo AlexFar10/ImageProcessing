@@ -88,7 +88,8 @@ Games.liveCode = function (el, opts) {
         });
         input.value = part.value;
       } else {
-        input = IP.el('input', { type: part.type || 'number', value: part.value, min: part.min, max: part.max, step: part.step || 1, 'aria-label': part.label || part.id });
+        input = IP.el('input', { type: part.type || 'number', min: part.min, max: part.max, step: part.step || 1, 'aria-label': part.label || part.id });
+        input.value = part.value;   // after min / max, or a slider would clip it to its default range
       }
       input.addEventListener('input', update);
       controls[part.id] = { input: input, part: part };

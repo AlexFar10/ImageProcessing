@@ -1,7 +1,7 @@
 # Image Processing Lab – interactive site
 
-A small website for the Image Processing lab (2nd year). Students learn the first three labs and
-histograms by playing with images and Python/OpenCV code.
+A small website for the Image Processing lab (2nd year). Students learn the first labs, histograms,
+point operations and binarization by playing with images and Python/OpenCV code.
 
 Plain HTML, CSS and JavaScript. No frameworks, no build step, no server, no external libraries,
 no tracking. It works on GitHub Pages and when `index.html` is opened straight from the folder.
@@ -19,6 +19,8 @@ grid.html             1. The image as a grid of numbers (labs 1–2)
 color.html            2. Color and grayscale (lab 3)
 quantization.html     3. Quantization and dithering (lab 3)
 histograms.html       4. Histograms
+pointops.html         5. Point operations (lecture 4)
+binarization.html     6. Binarization (lab: histograms and binarization)
 glossary.html         Glossary (built from js/glossary-data.js)
 
 css/style.css         all styles; light and dark colors are variables at the top

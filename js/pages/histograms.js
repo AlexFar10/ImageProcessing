@@ -49,6 +49,18 @@ function pair(img, caption) {
     document.getElementById('h-code').innerHTML = IP.highlight(code);
   }
   [beta, alpha, neg].forEach(function (el) { el.addEventListener('input', update); });
+  // Per-channel histograms and the cumulative one (they follow the image, not the sliders)
+  function channels() {
+    var img = IP.color(), box = document.getElementById('h-channels');
+    box.innerHTML = '';
+    ['B', 'G', 'R'].forEach(function (name, k) {
+      box.append(IP.el('figure', { class: 'figure', style: 'margin-bottom:.6rem' },
+        IP.histogramCanvas(IP.channel(img, k)), IP.el('figcaption', { text: name + ' channel' })));
+    });
+    IP.drawHistogram(document.getElementById('h-cumulative'), IP.cumulative(IP.histogram(IP.gray())));
+  }
+  IP.ready(channels);
+  IP.onChange(channels);
   document.getElementById('h-reset').onclick = function () { beta.value = 0; alpha.value = 1; neg.checked = false; update(); };
   IP.ready(update);
   IP.onChange(update);
@@ -73,6 +85,35 @@ Games.predict(document.getElementById('game-match-hist'), {
         explain: v[1]
       }, [v].concat(others).map(function (o) { return function () { return IP.histogramCanvas(o[0]); }; }));
     });
+  }
+});
+
+/* ---------- Game (no code): different images, same histogram ---------- */
+// Three 120 x 120 images, each exactly half gray (170) and half white (255)
+function twoTone(kind) {
+  var n = 120, g = IP.makeGray(n, n);
+  for (var y = 0; y < n; y++) {
+    for (var x = 0; x < n; x++) {
+      var gray = kind === 'halves' ? x < n / 2 : kind === 'stripes' ? Math.floor(x / 15) % 2 === 0 : (Math.floor(x / 15) + Math.floor(y / 15)) % 2 === 0;
+      g.data[y * n + x] = gray ? 170 : 255;
+    }
+  }
+  return g;
+}
+Games.predict(document.getElementById('game-same-hist'), {
+  title: 'Three pictures',
+  task: '',
+  rounds: function () {
+    var pics = ['halves', 'stripes', 'checker'].map(twoTone);
+    return [Games.pickRound({
+      question: 'How do their histograms compare?',
+      figure: function () {
+        var framed = function (p) { var c = IP.canvasOf(p); c.style.border = '1px solid var(--border)'; return c; };
+        return IP.el('div', { class: 'row-3', style: 'max-width:420px' }, framed(pics[0]), framed(pics[1]), framed(pics[2]));
+      },
+      explain: 'Each picture is half gray, half white: the same counts, so the same histogram.',
+      reveal: function (out) { out.append(IP.el('div', { style: 'max-width:360px' }, IP.histogramCanvas(pics[0]))); }
+    }, ['all three are the same', 'all three are different', 'only two are the same'])];
   }
 });
 
@@ -139,6 +180,26 @@ Games.liveCode(document.getElementById('game-live-hist'), {
   }
 });
 
+/* ---------- Game: fill in the per-channel loop ---------- */
+Games.fillBlanks(document.getElementById('game-fill-channels'), {
+  title: 'One histogram per channel',
+  task: '',
+  parts: [
+    'for i in range(', { answer: '3', options: ['1', '3', '256'], hint: 'A color image has 3 channels: B, G, R.' },
+    '):\n    h = cv2.calcHist([img], [', { answer: 'i', options: ['0', 'i', '3'], hint: 'The channel number changes in every turn of the loop.' },
+    '], None, [', { answer: '256', options: ['3', '255', '256'], hint: 'One bin for every value 0…255: that is 256 bins.' },
+    '], [0, 256])'
+  ],
+  explain: 'Channel i, no mask, 256 bins, values from 0 up to 256.',
+  onCorrect: function (out) {
+    var img = IP.color(), grid = IP.el('div', { class: 'grid-3' });
+    ['B', 'G', 'R'].forEach(function (n, k) {
+      grid.append(IP.el('figure', { class: 'figure' }, IP.histogramCanvas(IP.channel(img, k)), IP.el('figcaption', { text: 'i = ' + k + ' (' + n + ')' })));
+    });
+    out.append(grid);
+  }
+});
+
 /* ---------- Game: put the plotting program in order ---------- */
 var drawHint = 'Drawing and labels can come in any order, but all before plt.show().';
 Games.orderLines(document.getElementById('game-order-hist'), {
@@ -168,6 +229,7 @@ IP.expected('expected-hist', function (img) {
   return [
     ['<code>print(len(hist), hist.sum(), gray.size)</code>', '256 ' + n + ' ' + n],
     ['<code>print(hist.argmax(), hist.max())</code>', best + ' ' + hist[best]],
-    ['<code>print(np.count_nonzero(hist))</code>', String(used)]
+    ['<code>print(np.count_nonzero(hist))</code>', String(used)],
+    ['<code>print(H[127], H[-1])</code>', IP.cumulative(hist)[127] + ' ' + n]
   ];
 });

@@ -18,6 +18,9 @@
       <li>Pixels on the left: dark image. On the right: bright (<span class="term" data-term="brightness">brightness</span>).</li>
       <li>Narrow hill: low <span class="term" data-term="contrast">contrast</span>. Wide: high contrast.</li>
       <li>Two <span class="term" data-term="peak">peaks</span>: two groups of pixels (e.g. sky and grass).</li>
+      <li>Color image: one histogram per channel, <code>cv2.calcHist([img], [i], …)</code> for i = 0, 1, 2 (B, G, R).</li>
+      <li><span class="term" data-term="cumulative-histogram">Cumulative histogram</span> <code>H(i) = h(0) + … + h(i)</code>: pixels with value ≤ i. Always rising, ends at the number of pixels.</li>
+      <li>Different images can have the same histogram: you cannot rebuild an image from it.</li>
     </ul>
     <div class="grid-3" id="reading-examples" style="margin-top:1.5rem"></div>
   </section>
@@ -38,17 +41,26 @@
         <p class="caption" id="h-stats"></p>
       </div>
     </div>
+    <h2>Per channel and cumulative</h2>
+    <div class="grid-2">
+      <div id="h-channels"></div>
+      <div>
+        <canvas id="h-cumulative" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px"></canvas>
+        <p class="caption">cumulative H(i) of the gray image</p>
+      </div>
+    </div>
   </section>
 
   <!-- ============ Code ============ -->
   <section class="part" id="code" data-title="Code">
     <div id="game-live-hist"></div>
+    <div id="game-fill-channels"></div>
     <div id="game-what-if"></div>
     <div id="game-order-hist"></div>
 
     <div class="exercise">
       <h3 style="margin-top:0">Exercise</h3>
-      <p>Count the pixels of each gray level with NumPy, check the total, find the most common level, plot it.</p>
+      <p>Count the pixels of each gray level with NumPy, check the total, find the most common level, make the cumulative histogram, plot it.</p>
       <div class="code"><pre>
 import cv2
 import numpy as np
@@ -72,6 +84,9 @@ print(len(hist), hist.sum(), gray.size)
 print(hist.argmax(), hist.max())
 print(np.count_nonzero(hist))
 
+H = np.cumsum(hist)
+print(H[127], H[-1])
+
 plt.bar(range(256), hist, width=1)
 plt.show()
 </pre></div>
@@ -83,6 +98,7 @@ plt.show()
   <!-- ============ No code ============ -->
   <section class="part" id="nocode" data-title="No code">
     <div id="game-match-hist"></div>
+    <div id="game-same-hist"></div>
     <div class="quiz">
       <p class="q">All bars sit between 100 and 140. The image is…</p>
       <div class="choices">
@@ -99,6 +115,15 @@ plt.show()
         <button type="button">is mirrored</button>
       </div>
       <p class="explain" hidden>It only counts values, not positions.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">The last value of the cumulative histogram, <code>H[255]</code>, is…</p>
+      <div class="choices">
+        <button type="button" data-correct>the number of pixels</button>
+        <button type="button">255</button>
+        <button type="button">the most common gray level</button>
+      </div>
+      <p class="explain" hidden>H adds up all the counts, so at the end every pixel has been counted.</p>
     </div>
   </section>
 </main>

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Point Operations · Image Processing Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="pointops">
+<main>
+  <h1>Point operations</h1>
+  <div id="image-bar"></div>
+
+  <!-- ============ Theory ============ -->
+  <section class="part" id="theory" data-title="Theory">
+    <ul class="points">
+      <li>A <span class="term" data-term="point-operation">point operation</span> changes every pixel with the same function: <code>a' = f(a)</code>. Neighbours and position do not matter.</li>
+      <li>Negative: <code>255 − a</code>. <span class="term" data-term="log-transform">Log</span>: <code>c · log(1 + a)</code> brightens dark areas a lot.</li>
+      <li><span class="term" data-term="gamma">Gamma</span>: <code>255 · (a / 255)<sup>γ</sup></code>. γ &lt; 1 brighter, γ &gt; 1 darker.</li>
+      <li><span class="term" data-term="contrast-stretching">Contrast stretching</span>: map [a, b] to [0, 255]. With a = min and b = max it is automatic; cutting a few % at each end ignores outliers.</li>
+      <li><span class="term" data-term="equalization">Equalization</span>: <code>new = round(H(a) / N · 255)</code>. The histogram spreads out, almost flat.</li>
+      <li>Merging levels cannot be undone; stretching leaves gaps in the histogram.</li>
+    </ul>
+  </section>
+
+  <!-- ============ Demo ============ -->
+  <section class="part" id="demo" data-title="Demo">
+    <div class="controls" style="margin-top:0">
+      <select id="p-func" aria-label="Function">
+        <option value="identity">Identity</option>
+        <option value="negative">Negative</option>
+        <option value="log">Log</option>
+        <option value="gamma">Gamma</option>
+        <option value="window">Window [a, b]</option>
+        <option value="auto">Auto contrast</option>
+        <option value="equalize">Equalization</option>
+      </select>
+      <label id="p-gamma-box">γ <input type="range" id="p-gamma" min="0.1" max="4" step="0.1" value="0.5"> <b id="p-gamma-val">0.5</b></label>
+      <label id="p-a-box">a <input type="range" id="p-a" min="0" max="254" value="60"> <b id="p-a-val">60</b></label>
+      <label id="p-b-box">b <input type="range" id="p-b" min="1" max="255" value="180"> <b id="p-b-val">180</b></label>
+      <label id="p-cut-box">cut % <input type="range" id="p-cut" min="0" max="5" step="0.5" value="0"> <b id="p-cut-val">0</b></label>
+      <label><input type="checkbox" id="p-dull" checked> dull input</label>
+    </div>
+    <div class="code"><pre id="p-code"></pre></div>
+    <div class="grid-3">
+      <figure class="figure"><canvas id="p-curve" style="background:var(--surface)"></canvas><figcaption>f(a)</figcaption></figure>
+      <figure class="figure"><canvas id="p-image" style="border-radius:8px"></canvas><figcaption>out</figcaption></figure>
+      <figure class="figure"><canvas id="p-hist" style="background:var(--surface)"></canvas><figcaption id="p-stats"></figcaption></figure>
+    </div>
+
+    <h2>Equalization step by step</h2>
+    <div class="controls">
+      <button class="btn" type="button" id="eq-next">Next step</button>
+      <button class="btn secondary" type="button" id="eq-reset">Reset</button>
+    </div>
+    <div style="overflow-x:auto"><table class="eq-table" id="eq-table"></table></div>
+    <p class="caption" id="eq-note" style="text-align:left"></p>
+  </section>
+
+  <!-- ============ Code ============ -->
+  <section class="part" id="code" data-title="Code">
+    <div id="game-live-gamma"></div>
+    <div id="game-fill-eq"></div>
+    <div id="game-bug-stretch"></div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise</h3>
+      <p>Make the dull image <code>src</code>. Stretch it with min and max, equalize it by hand, compare with <code>cv2.equalizeHist</code>.</p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+src = (gray * 0.4 + 30).astype(np.uint8)      # a dull image
+
+# your code here
+</pre></div>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+src = (gray * 0.4 + 30).astype(np.uint8)
+
+lo, hi = int(src.min()), int(src.max())
+out = (src.astype(np.float64) - lo) * 255 / (hi - lo)
+stretched = np.clip(np.round(out), 0, 255).astype(np.uint8)
+print(lo, hi, np.count_nonzero(np.bincount(stretched.ravel())))
+
+hist = np.bincount(src.ravel(), minlength=256)
+cdf = np.cumsum(hist)
+lut = np.round(cdf / cdf[-1] * 255).astype(np.uint8)
+mine = lut[src]
+cv = cv2.equalizeHist(src)
+print(round(mine.mean(), 2), round(cv.mean(), 2))
+print(np.count_nonzero(mine != cv), np.abs(mine.astype(int) - cv).max())
+</pre></div>
+      </details>
+      <div class="expected" id="expected-pointops"></div>
+    </div>
+  </section>
+
+  <!-- ============ No code ============ -->
+  <section class="part" id="nocode" data-title="No code">
+    <div id="game-curve-picture"></div>
+    <div id="game-eq-table"></div>
+    <div class="quiz">
+      <p class="q">Gamma with γ = 0.5 makes the image…</p>
+      <div class="choices">
+        <button type="button" data-correct>brighter</button>
+        <button type="button">darker</button>
+        <button type="button">unchanged</button>
+      </div>
+      <p class="explain" hidden>γ &lt; 1 lifts the dark values: (a/255)<sup>0.5</sup> ≥ a/255.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">After contrast stretching the histogram has gaps. Why?</p>
+      <div class="choices">
+        <button type="button" data-correct>The same levels are spread over a wider range</button>
+        <button type="button">Some pixels were deleted</button>
+        <button type="button">The image became color</button>
+      </div>
+      <p class="explain" hidden>Stretching moves levels apart; it cannot invent the levels in between.</p>
+    </div>
+  </section>
+</main>
+<script src="js/test-image.js"></script>
+<script src="js/glossary-data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/games.js"></script>
+<script src="js/pages/pointops.js"></script>
+</body>
+</html>

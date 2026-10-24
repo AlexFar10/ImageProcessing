@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Binarization · Image Processing Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="binarization">
+<main>
+  <h1>Binarization</h1>
+  <div id="image-bar"></div>
+
+  <!-- ============ Theory ============ -->
+  <section class="part" id="theory" data-title="Theory">
+    <ul class="points">
+      <li><span class="term" data-term="binarization">Binarization</span>: <code>255 if f &gt; T else 0</code>. One gray level <span class="term" data-term="threshold">T</span> splits the image into white and black.</li>
+      <li><code>cv2.threshold(gray, T, 255, cv2.THRESH_BINARY)</code>. <code>THRESH_BINARY_INV</code> swaps white and black (for dark objects).</li>
+      <li>Put T in the valley between the two <span class="term" data-term="peak">peaks</span> of the histogram.</li>
+      <li>T too low: almost everything white. T too high: only the brightest spots survive.</li>
+      <li>Uneven light: one T cannot fit both sides. An <span class="term" data-term="adaptive-threshold">adaptive threshold</span> compares each pixel with the mean of its <code>blockSize × blockSize</code> neighbourhood minus <code>C</code>.</li>
+    </ul>
+  </section>
+
+  <!-- ============ Demo ============ -->
+  <section class="part" id="demo" data-title="Demo">
+    <div class="controls" style="margin-top:0">
+      <label>T <input type="range" id="b-t" min="0" max="255" value="128"> <b id="b-t-val">128</b></label>
+      <label><input type="checkbox" id="b-inv"> INV</label>
+    </div>
+    <div class="grid-2">
+      <div>
+        <canvas id="b-hist" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px"></canvas>
+        <p class="caption" id="b-stats"></p>
+      </div>
+      <canvas id="b-image" style="width:100%;border-radius:8px;border:1px solid var(--border)"></canvas>
+    </div>
+
+    <h2>Uneven light</h2>
+    <div class="controls">
+      <label>T <input type="range" id="u-t" min="0" max="255" value="128"> <b id="u-t-val">128</b></label>
+      <label>blockSize <input type="range" id="u-block" min="3" max="61" step="2" value="31"> <b id="u-block-val">31</b></label>
+      <label>C <input type="range" id="u-c" min="0" max="30" value="10"> <b id="u-c-val">10</b></label>
+    </div>
+    <div class="grid-3">
+      <figure class="figure"><canvas id="u-src"></canvas><figcaption>dark on the left</figcaption></figure>
+      <figure class="figure"><canvas id="u-global"></canvas><figcaption>one T</figcaption></figure>
+      <figure class="figure"><canvas id="u-adaptive"></canvas><figcaption>adaptive (MEAN_C)</figcaption></figure>
+    </div>
+  </section>
+
+  <!-- ============ Code ============ -->
+  <section class="part" id="code" data-title="Code">
+    <div id="game-live-threshold"></div>
+    <div id="game-bug-where"></div>
+    <div id="game-fill-adaptive"></div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise</h3>
+      <p>Threshold at 128 with OpenCV and with <code>np.where</code>, check they match. Then darken the left side and compare one T with an adaptive threshold.</p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+h, w = gray.shape
+shade = 0.3 + 0.7 * np.arange(w) / (w - 1)
+dark = (gray * shade).astype(np.uint8)        # uneven light
+
+# your code here
+</pre></div>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+h, w = gray.shape
+shade = 0.3 + 0.7 * np.arange(w) / (w - 1)
+dark = (gray * shade).astype(np.uint8)
+
+T, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
+mine = np.where(gray > 128, 255, 0).astype(np.uint8)
+print(np.count_nonzero(binary), np.array_equal(binary, mine))
+
+T, one = cv2.threshold(dark, 128, 255, cv2.THRESH_BINARY)
+adapt = cv2.adaptiveThreshold(dark, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                              cv2.THRESH_BINARY, 31, 10)
+print(np.count_nonzero(one), np.count_nonzero(adapt))
+</pre></div>
+      </details>
+      <div class="expected" id="expected-binarization"></div>
+    </div>
+  </section>
+
+  <!-- ============ No code ============ -->
+  <section class="part" id="nocode" data-title="No code">
+    <div id="game-click-valley"></div>
+    <div id="game-which-t"></div>
+    <div class="quiz">
+      <p class="q">T = 20 on a normal photo gives…</p>
+      <div class="choices">
+        <button type="button" data-correct>almost all white</button>
+        <button type="button">almost all black</button>
+        <button type="button">half and half</button>
+      </div>
+      <p class="explain" hidden>Almost every pixel is brighter than 20, so it becomes 255.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">The left half of a page is in shadow. Which works better?</p>
+      <div class="choices">
+        <button type="button">one threshold T</button>
+        <button type="button" data-correct>an adaptive threshold</button>
+      </div>
+      <p class="explain" hidden>Each pixel is compared with its own neighbourhood, so the shadow does not matter.</p>
+    </div>
+  </section>
+</main>
+<script src="js/test-image.js"></script>
+<script src="js/glossary-data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/games.js"></script>
+<script src="js/pages/binarization.js"></script>
+</body>
+</html>
