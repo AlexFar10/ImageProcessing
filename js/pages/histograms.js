@@ -24,7 +24,7 @@ function pair(img, caption) {
     var gray = IP.gray(), box = document.getElementById('reading-examples');
     box.innerHTML = '';
     box.append(pair(IP.cvAdd(gray, -90), 'darker: pixels pile up on the left'),
-      pair(contrast(gray, 0.35, 0), 'low contrast: a narrow hill'),
+      pair(contrast(gray, 0.35, 0), 'low contrast: a narrow peak'),
       pair(gray, 'the image itself'));
   }
   IP.ready(show);
@@ -49,18 +49,6 @@ function pair(img, caption) {
     document.getElementById('h-code').innerHTML = IP.highlight(code);
   }
   [beta, alpha, neg].forEach(function (el) { el.addEventListener('input', update); });
-  // Per-channel histograms and the cumulative one (they follow the image, not the sliders)
-  function channels() {
-    var img = IP.color(), box = document.getElementById('h-channels');
-    box.innerHTML = '';
-    ['B', 'G', 'R'].forEach(function (name, k) {
-      box.append(IP.el('figure', { class: 'figure', style: 'margin-bottom:.6rem' },
-        IP.histogramCanvas(IP.channel(img, k)), IP.el('figcaption', { text: name + ' channel' })));
-    });
-    IP.drawHistogram(document.getElementById('h-cumulative'), IP.cumulative(IP.histogram(IP.gray())));
-  }
-  IP.ready(channels);
-  IP.onChange(channels);
   document.getElementById('h-reset').onclick = function () { beta.value = 0; alpha.value = 1; neg.checked = false; update(); };
   IP.ready(update);
   IP.onChange(update);
@@ -75,7 +63,7 @@ Games.predict(document.getElementById('game-match-hist'), {
     var versions = [
       [IP.cvAdd(gray, -90), 'Darker: everything moves left, pixels pile up at 0.'],
       [IP.cvAdd(gray, 90), 'Brighter: everything moves right, pixels pile up at 255.'],
-      [contrast(gray, 0.35, 0), 'Low contrast: a narrow hill in the middle.'],
+      [contrast(gray, 0.35, 0), 'Low contrast: a narrow peak in the middle.'],
       [IP.quantize(gray, 4), 'Only 4 levels: only 4 spikes.']
     ];
     return Games.shuffle(versions).map(function (v) {
@@ -201,21 +189,21 @@ Games.fillBlanks(document.getElementById('game-fill-channels'), {
 });
 
 /* ---------- Game: put the plotting program in order ---------- */
-var drawHint = 'Drawing and labels can come in any order, but all before plt.show().';
+// needs: the lines each line uses. Any order that respects them is right.
 Games.orderLines(document.getElementById('game-order-hist'), {
   title: 'Plot a histogram',
   lines: [
-    { text: 'import cv2', group: 'imports', hint: 'Imports always come first.' },
-    { text: 'import matplotlib.pyplot as plt', group: 'imports', hint: 'Imports always come first.' },
-    { text: 'img = cv2.imread("landscape.png")', hint: 'You need to read the image before you can convert it.' },
-    { text: 'gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)', hint: 'Convert to gray after reading, before counting.' },
-    { text: 'hist = cv2.calcHist([gray], [0], None, [256], [0, 256])', hint: 'The counts need the gray image, and the plot needs the counts.' },
-    { text: 'plt.plot(hist)', group: 'draw', hint: drawHint },
-    { text: 'plt.xlabel("gray level")', group: 'draw', hint: drawHint },
-    { text: 'plt.ylabel("number of pixels")', group: 'draw', hint: drawHint },
-    { text: 'plt.show()', hint: 'plt.show() opens the window, so it comes last.' }
+    { text: 'import cv2' },
+    { text: 'import matplotlib.pyplot as plt' },
+    { text: 'img = cv2.imread("landscape.png")', needs: [0], hint: 'cv2.imread needs import cv2 above it.' },
+    { text: 'gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)', needs: [0, 2], hint: 'You need img (from cv2.imread) before you can convert it.' },
+    { text: 'hist = cv2.calcHist([gray], [0], None, [256], [0, 256])', needs: [0, 3], hint: 'The counts need the gray image.' },
+    { text: 'plt.plot(hist)', needs: [1, 4], hint: 'plt.plot needs the import of plt and the counts in hist.' },
+    { text: 'plt.xlabel("gray level")', needs: [1], hint: 'plt.xlabel needs the import of plt above it.' },
+    { text: 'plt.ylabel("number of pixels")', needs: [1], hint: 'plt.ylabel needs the import of plt above it.' },
+    { text: 'plt.show()', needs: [1, 5, 6, 7], hint: 'plt.show() opens the window, so the drawing and both labels must come before it.' }
   ],
-  explain: 'Import, read, convert to gray, count, draw, show.'
+  explain: 'Every line comes after the lines it uses. The two imports may swap, and so may the two labels.'
 });
 
 /* ---------- Exercise: expected values ---------- */

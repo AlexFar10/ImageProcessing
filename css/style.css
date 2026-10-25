@@ -181,6 +181,8 @@ main { padding: 2.5rem 3rem 4rem; max-width: 1080px; width: 100%; }
 
 .click-stage { position: relative; display: block; max-width: 640px; }
 .click-stage canvas { cursor: crosshair; width: 100%; border-radius: 8px; }
+/* every picture in a game gets a thin frame, so white parts do not blend into the card */
+.game canvas { border: 1px solid var(--border); border-radius: 8px; }
 .score { font-size: .85rem; color: var(--muted); }
 .game-body > .btn { margin-top: .8rem; }
 
@@ -248,7 +250,7 @@ main { padding: 2.5rem 3rem 4rem; max-width: 1080px; width: 100%; }
 }
 
 /* ---------- tabs: one part of a topic at a time ---------- */
-.tabs { display: flex; gap: .3rem; border-bottom: 1px solid var(--border); margin: 1.4rem 0 1.6rem; overflow-x: auto; }
+.tabs { display: flex; gap: .3rem; border-bottom: 1px solid var(--border); margin: 1.4rem 0 1.6rem; overflow-x: auto; overflow-y: hidden; } /* scrolls sideways on narrow phones only */
 .tabs a { padding: .55rem 1rem; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
 .tabs a:hover { color: var(--text); text-decoration: none; }
 .tabs a.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
@@ -258,7 +260,8 @@ main { padding: 2.5rem 3rem 4rem; max-width: 1080px; width: 100%; }
 .points li { margin: .55rem 0; }
 .part h2 { font-size: 1.1rem; margin: 2rem 0 .6rem; }
 .quiz, .exercise { position: relative; }
-.corner-reset { position: absolute; top: 1rem; right: 1rem; }
+.corner-reset { position: absolute; top: 1.3rem; right: 1.4rem; }   /* same spot as the Reset of the games */
+@media (max-width: 600px) { .corner-reset { top: 1rem; right: 1rem; } }
 .quiz .q, .exercise > h3 { padding-right: 5.5rem; }
 
 [hidden] { display: none !important; }

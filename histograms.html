@@ -16,7 +16,7 @@
     <ul class="points">
       <li>A <span class="term" data-term="histogram">histogram</span> counts how many pixels have each gray level 0…255. Positions do not matter.</li>
       <li>Pixels on the left: dark image. On the right: bright (<span class="term" data-term="brightness">brightness</span>).</li>
-      <li>Narrow hill: low <span class="term" data-term="contrast">contrast</span>. Wide: high contrast.</li>
+      <li>Narrow peak: low <span class="term" data-term="contrast">contrast</span>. Wide: high contrast.</li>
       <li>Two <span class="term" data-term="peak">peaks</span>: two groups of pixels (e.g. sky and grass).</li>
       <li>Color image: one histogram per channel, <code>cv2.calcHist([img], [i], …)</code> for i = 0, 1, 2 (B, G, R).</li>
       <li><span class="term" data-term="cumulative-histogram">Cumulative histogram</span> <code>H(i) = h(0) + … + h(i)</code>: pixels with value ≤ i. Always rising, ends at the number of pixels.</li>
@@ -41,14 +41,6 @@
         <p class="caption" id="h-stats"></p>
       </div>
     </div>
-    <h2>Per channel and cumulative</h2>
-    <div class="grid-2">
-      <div id="h-channels"></div>
-      <div>
-        <canvas id="h-cumulative" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px"></canvas>
-        <p class="caption">cumulative H(i) of the gray image</p>
-      </div>
-    </div>
   </section>
 
   <!-- ============ Code ============ -->
@@ -60,7 +52,7 @@
 
     <div class="exercise">
       <h3 style="margin-top:0">Exercise</h3>
-      <p>Count the pixels of each gray level with NumPy, check the total, find the most common level, make the cumulative histogram, plot it.</p>
+      <p>Count the pixels of each gray level with NumPy (<code>hist</code>, 256 numbers), check the total, find the most common level, make the cumulative histogram (<code>H</code>), plot <code>hist</code>.</p>
       <div class="code"><pre>
 import cv2
 import numpy as np
@@ -68,6 +60,7 @@ import matplotlib.pyplot as plt
 
 gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
 
+# name them: hist (the 256 counts), H (the cumulative histogram)
 # your code here
 </pre></div>
       <details>
@@ -95,8 +88,8 @@ plt.show()
     </div>
   </section>
 
-  <!-- ============ No code ============ -->
-  <section class="part" id="nocode" data-title="No code">
+  <!-- ============ Quick questions ============ -->
+  <section class="part" id="nocode" data-title="Quick questions">
     <div id="game-match-hist"></div>
     <div id="game-same-hist"></div>
     <div class="quiz">

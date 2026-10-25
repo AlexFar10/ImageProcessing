@@ -130,8 +130,10 @@ Games.liveCode = function (el, opts) {
 };
 
 /* ---------------------------------------------------------------------
-   Fill in the blanks: opts = { title, task, parts, onCorrect(out) }
+   Fill in the blanks: opts = { title, task, parts, explain, onCorrect(out, values) }
    blanks in parts: { id, answer: 'text' or ['a', 'b'], options: [...] (makes a menu), hint }
+   Instead of answer, a blank can have accept(value) -> true / false (e.g. "any odd number").
+   values passed to onCorrect: { id: what the student chose }
    --------------------------------------------------------------------- */
 Games.fillBlanks = function (el, opts) {
   var g = gameShell(el, 'Fill in the blanks', opts.title, opts.task);
@@ -168,8 +170,8 @@ Games.fillBlanks = function (el, opts) {
   function check() {
     var wrong = [];
     blanks.forEach(function (b) {
-      var answers = [].concat(b.part.answer).map(norm);
-      var ok = answers.indexOf(norm(b.input.value)) >= 0;
+      var ok = b.part.accept ? b.part.accept(b.input.value.trim())
+        : [].concat(b.part.answer).map(norm).indexOf(norm(b.input.value)) >= 0;
       b.input.classList.toggle('blank-ok', ok);
       b.input.classList.toggle('blank-bad', !ok);
       if (!ok) wrong.push(b);
@@ -177,7 +179,9 @@ Games.fillBlanks = function (el, opts) {
     out.innerHTML = '';
     if (wrong.length === 0) {
       g.say('good', 'Correct!', opts.explain);
-      if (opts.onCorrect) opts.onCorrect(out);
+      var values = {};
+      blanks.forEach(function (b) { if (b.part.id) values[b.part.id] = b.input.value.trim(); });
+      if (opts.onCorrect) opts.onCorrect(out, values);
     } else {
       var empty = wrong.filter(function (b) { return !b.input.value; }).length;
       var first = wrong.find(function (b) { return b.input.value; }) || wrong[0];
@@ -193,14 +197,23 @@ Games.fillBlanks = function (el, opts) {
 
 /* ---------------------------------------------------------------------
    Put the lines in order: opts = { title, task, lines, explain }
-   lines are given in the right order: { text, group, hint }
-   Lines with the same `group` may swap places with each other.
+   lines are given in one right order: { text, group, needs, hint }
+   Either: lines with the same `group` may swap places with each other.
+   Or: needs = [indices of the lines this one uses]; then any order is right
+   as long as every line comes after the lines it needs.
    --------------------------------------------------------------------- */
 Games.orderLines = function (el, opts) {
   var g = gameShell(el, 'Put the lines in order', opts.title, opts.task ||
     'Drag (☰) or use the arrows.');
   var list = IP.el('ol', { class: 'lines' });
   var groupAt = opts.lines.map(function (l, i) { return l.group || 'line' + i; });
+  var byNeeds = opts.lines.some(function (l) { return l.needs; });
+
+  // Is line lineIndex, standing at position pos of order, in a right place?
+  function fits(order, lineIndex, pos) {
+    if (!byNeeds) return groupAt[lineIndex] === groupAt[pos];
+    return (opts.lines[lineIndex].needs || []).every(function (n) { return order.indexOf(n) < pos; });
+  }
 
   function start() {
     g.clear();
@@ -216,7 +229,7 @@ Games.orderLines = function (el, opts) {
   }
 
   function isCorrect(order) {
-    return order.every(function (lineIndex, pos) { return groupAt[lineIndex] === groupAt[pos]; });
+    return order.every(function (lineIndex, pos) { return fits(order, lineIndex, pos); });
   }
 
   function makeItem(i) {
@@ -255,10 +268,11 @@ Games.orderLines = function (el, opts) {
 
   function check() {
     var items = Array.prototype.slice.call(list.children);
+    var order = items.map(function (li) { return Number(li.dataset.i); });
     var wrong = [];
     items.forEach(function (li, pos) {
-      var i = Number(li.dataset.i);
-      var ok = groupAt[i] === groupAt[pos];
+      var i = order[pos];
+      var ok = fits(order, i, pos);
       li.classList.toggle('ok', ok);
       li.classList.toggle('wrong', !ok);
       if (!ok) wrong.push(i);

@@ -1,6 +1,6 @@
 // Section 5: binarization (lab: histograms and binarization).
 
-// The valley between the two biggest hills of a histogram, or null if there is no clear one.
+// The valley between the two biggest peaks of a histogram, or null if there is no clear one.
 // Returns { lo, hi, best }: any T from lo to hi counts as "in the valley".
 function findValley(hist) {
   var sm = hist.map(function (v, i) {   // smooth with a window of 9 levels
@@ -37,22 +37,6 @@ function findValley(hist) {
   }
   t.addEventListener('input', update);
   inv.addEventListener('input', update);
-  IP.ready(update);
-  IP.onChange(update);
-})();
-
-/* ---------- Demo: uneven light, one T vs adaptive ---------- */
-(function () {
-  var ids = ['t', 'block', 'c'], el = {};
-  ids.forEach(function (id) { el[id] = document.getElementById('u-' + id); });
-  function update() {
-    ids.forEach(function (id) { document.getElementById('u-' + id + '-val').textContent = el[id].value; });
-    var dark = IP.unevenLight(IP.gray());
-    IP.draw(document.getElementById('u-src'), dark);
-    IP.draw(document.getElementById('u-global'), IP.threshold(dark, Number(el.t.value)));
-    IP.draw(document.getElementById('u-adaptive'), IP.adaptiveMean(dark, Number(el.block.value), Number(el.c.value)));
-  }
-  ids.forEach(function (id) { el[id].addEventListener('input', update); });
   IP.ready(update);
   IP.onChange(update);
 })();
@@ -94,30 +78,52 @@ Games.spotBug(document.getElementById('game-bug-where'), {
 });
 
 /* ---------- Game: fill in adaptiveThreshold ---------- */
+// Any odd whole number from 3 up is a valid blockSize
+function oddBlock(v) { return /^\d+$/.test(v) && Number(v) >= 3 && Number(v) % 2 === 1; }
 Games.fillBlanks(document.getElementById('game-fill-adaptive'), {
   title: 'Adaptive threshold',
-  task: '',
+  task: '<code>dark</code> is the image with its left side in shadow.',
   parts: [
     'binary = cv2.adaptiveThreshold(dark, ', { answer: '255', options: ['1', '128', '255'], hint: 'The value given to white pixels: 255.' },
-    ',\n    cv2.', { answer: 'ADAPTIVE_THRESH_MEAN_C', options: ['ADAPTIVE_THRESH_MEAN_C', 'THRESH_BINARY'], hint: 'First the adaptive method, then the threshold type.' },
-    ', cv2.THRESH_BINARY,\n    ', { answer: '31', options: ['30', '31', '2'], hint: 'blockSize must be odd, so the pixel sits in the middle of its window.' },
+    ',\n    cv2.', { id: 'method', answer: ['ADAPTIVE_THRESH_MEAN_C', 'ADAPTIVE_THRESH_GAUSSIAN_C'],
+      options: ['ADAPTIVE_THRESH_MEAN_C', 'ADAPTIVE_THRESH_GAUSSIAN_C', 'THRESH_BINARY'],
+      hint: 'First the adaptive method (MEAN_C or GAUSSIAN_C), then the threshold type.' },
+    ', cv2.THRESH_BINARY,\n    ', { id: 'block', accept: oddBlock, size: 4, hint: 'blockSize must be an odd number (3, 5, 7, …), so the pixel sits in the middle of its window.' },
     ', 10)'
   ],
-  explain: 'maxValue 255, method MEAN_C, type BINARY, an odd blockSize, then C.',
-  onCorrect: function (out) {
-    var dark = IP.unevenLight(IP.gray());
-    out.append(IP.el('div', { class: 'grid-2' }, IP.figure(dark, 'dark'), IP.figure(IP.adaptiveMean(dark, 31, 10), 'adaptive')));
+  explain: 'Both methods work: MEAN_C uses the plain mean of the window, GAUSSIAN_C gives the closer pixels more weight. ' +
+    'Any odd blockSize from 3 up is valid: small windows follow small details, big ones follow the light. Then C = 10.',
+  onCorrect: function (out, v) {
+    var dark = IP.unevenLight(IP.gray()), block = Math.min(Number(v.block), 151);   // keep it quick to draw
+    var method = v.method === 'ADAPTIVE_THRESH_MEAN_C' ? 'mean' : 'gaussian';
+    out.append(IP.el('div', { class: 'grid-2' }, IP.figure(dark, 'dark'),
+      IP.figure(IP.adaptive(dark, method, block, 10), (method === 'mean' ? 'MEAN_C' : 'GAUSSIAN_C') + ', blockSize ' + v.block)));
   }
 });
 
 /* ---------- Game (no code): click the valley ---------- */
+// A picture made for this game: bright coins on a dark table, so the histogram
+// has two clear peaks. Seeded noise, so it is the same picture every time.
+function coinsImage() {
+  var w = 320, h = 240, g = IP.makeGray(w, h), seed = 7;
+  function rand() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+  function noise() { return (rand() + rand() + rand() - 1.5) * 24; }   // roughly -36…36
+  var coins = [[70, 70, 38], [190, 60, 30], [260, 160, 42], [120, 170, 34], [215, 130, 18]];
+  for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+    var on = coins.some(function (c) { return (x - c[0]) * (x - c[0]) + (y - c[1]) * (y - c[1]) < c[2] * c[2]; });
+    var v = Math.round((on ? 180 : 70) + noise());
+    g.data[y * w + x] = v < 0 ? 0 : v > 255 ? 255 : v;
+  }
+  return g;
+}
 (function () {
-  var g = Games.shell(document.getElementById('game-click-valley'), 'On the histogram', 'Where would you put T?', 'Click the histogram.');
+  var g = Games.shell(document.getElementById('game-click-valley'), 'On the histogram', 'Where would you put T?',
+    'Coins on a table. Click the histogram where T should go.');
+  var gray = coinsImage(), hist = IP.histogram(gray), valley = findValley(hist);
   function start() {
     g.clear();
-    var gray = IP.gray(), hist = IP.histogram(gray), valley = findValley(hist);
     var canvas = IP.el('canvas', { style: 'width:100%;cursor:crosshair;background:var(--surface);border:1px solid var(--border);border-radius:8px' });
-    var result = IP.el('div', { style: 'max-width:420px;margin-top:.8rem' });
+    var result = IP.el('div', { class: 'grid-2', style: 'margin-top:.8rem' }, IP.figure(gray, 'the picture'));
     IP.drawHistogram(canvas, hist, { clipTallest: true });
     canvas.onclick = function (e) {
       var r = canvas.getBoundingClientRect();
@@ -125,18 +131,16 @@ Games.fillBlanks(document.getElementById('game-fill-adaptive'), {
       var T = Math.max(0, Math.min(255, Math.floor((x - 8) / 496 * 256)));
       IP.drawHistogram(canvas, hist, { clipTallest: true, line: T, band: [T + 1, 256] });
       result.innerHTML = '';
-      result.append(IP.figure(IP.threshold(gray, T), 'T = ' + T));
-      if (!valley) g.say('info', 'T = ' + T, 'This image has no clear valley between two peaks. Try the test image.');
-      else if (T >= valley.lo && T <= valley.hi) g.say('good', 'T = ' + T + ': in the valley.', 'Between the two hills (' + valley.peaks[0] + ' and ' + valley.peaks[1] + '), so each group lands on one side.');
-      else if (T < valley.lo) g.say('bad', 'T = ' + T + ': too far left.', T < valley.peaks[0] ? 'You are before the dark hill: almost everything turns white.' : 'You are still on the dark hill: part of it turns white. Move right, to the lowest point.');
-      else g.say('bad', 'T = ' + T + ': too far right.', T > valley.peaks[1] ? 'You are after the bright hill: almost everything turns black.' : 'You are on the bright hill: part of it turns black. Move left, to the lowest point.');
+      result.append(IP.figure(gray, 'the picture'), IP.figure(IP.threshold(gray, T), 'T = ' + T));
+      if (T >= valley.lo && T <= valley.hi) g.say('good', 'T = ' + T + ': in the valley.', 'Between the two peaks (' + valley.peaks[0] + ' and ' + valley.peaks[1] + '): the table turns black and the coins white.');
+      else if (T < valley.lo) g.say('bad', 'T = ' + T + ': too far left.', T < valley.peaks[0] ? 'You are before the first peak: almost everything turns white.' : 'You are still on the dark peak (the table): part of it turns white. Move right, to the lowest point.');
+      else g.say('bad', 'T = ' + T + ': too far right.', T > valley.peaks[1] ? 'You are past the last peak: almost everything turns black.' : 'You are on the bright peak (the coins): parts of them turn black. Move left, to the lowest point.');
     };
     g.body.innerHTML = '';
     g.body.append(canvas, result);
   }
   g.restart.onclick = start;
-  IP.ready(start);
-  IP.onChange(start);
+  start();
 })();
 
 /* ---------- Game (no code): which T made this? ---------- */

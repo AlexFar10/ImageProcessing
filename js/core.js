@@ -53,7 +53,7 @@ IP.store = {
 };
 
 // The dashboard frame: a sidebar with all topics, and on a topic page
-// four tabs (Theory, Demo, Code, No code) made from <section class="part">.
+// four tabs (Theory, Demo, Code, Quick questions) made from <section class="part">.
 function buildLayout() {
   var page = document.body.getAttribute('data-page');
   var main = document.querySelector('main');
@@ -223,7 +223,7 @@ function renderImageBar() {
   if (IP.photoColor) {
     bar.append(IP.el('button', { class: 'btn secondary', onclick: IP.downloadPhoto, text: 'Save as PNG', title: 'The exact pixels used here, for your Python script' }));
   }
-  bar.append(IP.el('span', { class: 'status', text: c.height + ' × ' + c.width }));
+  bar.append(IP.el('span', { class: 'status', text: c.height + ' rows × ' + c.width + ' columns' }));
 
   function radio(value) {
     var input = IP.el('input', { type: 'radio', name: 'img-source', value: value });
@@ -442,6 +442,36 @@ IP.boxMean = function (g, block) {
 IP.adaptiveMean = function (g, block, C) {
   var mean = IP.boxMean(g, block), idelta = Math.ceil(C);
   var out = IP.makeGray(g.width, g.height);
+  for (var i = 0; i < g.data.length; i++) out.data[i] = g.data[i] - mean.data[i] > -idelta ? 255 : 0;
+  return out;
+};
+
+// The local mean of ADAPTIVE_THRESH_GAUSSIAN_C: a Gaussian-weighted block, replicate borders.
+// Close to OpenCV, but not bit-exact (only used for pictures, never for expected values).
+IP.gaussianMean = function (g, block) {
+  var w = g.width, h = g.height, r = (block - 1) / 2, sigma = 0.3 * ((block - 1) * 0.5 - 1) + 0.8;
+  var k = [], total = 0;
+  for (var i = -r; i <= r; i++) { k.push(Math.exp(-i * i / (2 * sigma * sigma))); total += k[k.length - 1]; }
+  k = k.map(function (v) { return v / total; });
+  function clamp(v, n) { return v < 0 ? 0 : v >= n ? n - 1 : v; }
+  var tmp = new Float64Array(w * h), out = IP.makeGray(w, h);
+  for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {      // blur the rows
+    var s = 0;
+    for (var d = -r; d <= r; d++) s += k[d + r] * g.data[y * w + clamp(x + d, w)];
+    tmp[y * w + x] = s;
+  }
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++) {              // then the columns
+    s = 0;
+    for (d = -r; d <= r; d++) s += k[d + r] * tmp[clamp(y + d, h) * w + x];
+    out.data[y * w + x] = Math.round(s);
+  }
+  return out;
+};
+
+// cv2.adaptiveThreshold with either method ('mean' or 'gaussian')
+IP.adaptive = function (g, method, block, C) {
+  if (method === 'mean') return IP.adaptiveMean(g, block, C);
+  var mean = IP.gaussianMean(g, block), idelta = Math.ceil(C), out = IP.makeGray(g.width, g.height);
   for (var i = 0; i < g.data.length; i++) out.data[i] = g.data[i] - mean.data[i] > -idelta ? 255 : 0;
   return out;
 };

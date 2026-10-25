@@ -18,7 +18,7 @@
       <li><code>cv2.threshold(gray, T, 255, cv2.THRESH_BINARY)</code>. <code>THRESH_BINARY_INV</code> swaps white and black (for dark objects).</li>
       <li>Put T in the valley between the two <span class="term" data-term="peak">peaks</span> of the histogram.</li>
       <li>T too low: almost everything white. T too high: only the brightest spots survive.</li>
-      <li>Uneven light: one T cannot fit both sides. An <span class="term" data-term="adaptive-threshold">adaptive threshold</span> compares each pixel with the mean of its <code>blockSize × blockSize</code> neighbourhood minus <code>C</code>.</li>
+      <li>Uneven light: one T cannot fit both sides. An <span class="term" data-term="adaptive-threshold">adaptive threshold</span> compares each pixel with the mean of its <code>blockSize × blockSize</code> neighbourhood minus <code>C</code>: a plain mean (<code>MEAN_C</code>) or one where closer pixels count more (<code>GAUSSIAN_C</code>). <code>blockSize</code> must be odd.</li>
     </ul>
   </section>
 
@@ -35,18 +35,6 @@
       </div>
       <canvas id="b-image" style="width:100%;border-radius:8px;border:1px solid var(--border)"></canvas>
     </div>
-
-    <h2>Uneven light</h2>
-    <div class="controls">
-      <label>T <input type="range" id="u-t" min="0" max="255" value="128"> <b id="u-t-val">128</b></label>
-      <label>blockSize <input type="range" id="u-block" min="3" max="61" step="2" value="31"> <b id="u-block-val">31</b></label>
-      <label>C <input type="range" id="u-c" min="0" max="30" value="10"> <b id="u-c-val">10</b></label>
-    </div>
-    <div class="grid-3">
-      <figure class="figure"><canvas id="u-src"></canvas><figcaption>dark on the left</figcaption></figure>
-      <figure class="figure"><canvas id="u-global"></canvas><figcaption>one T</figcaption></figure>
-      <figure class="figure"><canvas id="u-adaptive"></canvas><figcaption>adaptive (MEAN_C)</figcaption></figure>
-    </div>
   </section>
 
   <!-- ============ Code ============ -->
@@ -57,7 +45,8 @@
 
     <div class="exercise">
       <h3 style="margin-top:0">Exercise</h3>
-      <p>Threshold at 128 with OpenCV and with <code>np.where</code>, check they match. Then darken the left side and compare one T with an adaptive threshold.</p>
+      <p>1. Threshold <code>gray</code> at <b>T = 128</b> with <code>cv2.THRESH_BINARY</code> (<code>binary</code>) and with <code>np.where(gray &gt; 128, 255, 0)</code> (<code>mine</code>). Check they match.</p>
+      <p>2. The starter code makes <code>dark</code>: the same image with its left side in shadow (from 30% light at the left edge to 100% at the right edge). Threshold <code>dark</code> once at <b>T = 128</b> (<code>one</code>), then with <code>cv2.adaptiveThreshold</code>: <b>maxValue 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, blockSize 31, C = 10</b> (<code>adapt</code>). Count the white pixels of both.</p>
       <div class="code"><pre>
 import cv2
 import numpy as np
@@ -65,8 +54,9 @@ import numpy as np
 gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
 h, w = gray.shape
 shade = 0.3 + 0.7 * np.arange(w) / (w - 1)
-dark = (gray * shade).astype(np.uint8)        # uneven light
+dark = (gray * shade).astype(np.uint8)        # left side in shadow
 
+# name them: binary, mine (T = 128), one (T = 128 on dark), adapt (MEAN_C, 31, 10)
 # your code here
 </pre></div>
       <details>
@@ -94,8 +84,8 @@ print(np.count_nonzero(one), np.count_nonzero(adapt))
     </div>
   </section>
 
-  <!-- ============ No code ============ -->
-  <section class="part" id="nocode" data-title="No code">
+  <!-- ============ Quick questions ============ -->
+  <section class="part" id="nocode" data-title="Quick questions">
     <div id="game-click-valley"></div>
     <div id="game-which-t"></div>
     <div class="quiz">
