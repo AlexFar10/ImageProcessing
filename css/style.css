@@ -260,9 +260,5 @@ main { padding: 2.5rem 3rem 4rem; max-width: 1080px; width: 100%; }
 .quiz, .exercise { position: relative; }
 .corner-reset { position: absolute; top: 1rem; right: 1rem; }
 .quiz .q, .exercise > h3 { padding-right: 5.5rem; }
-.eq-table { border-collapse: collapse; font-size: .9rem; margin: .6rem 0; }
-.eq-table th { text-align: left; font-weight: 500; color: var(--muted); padding: .35rem .8rem .35rem 0; white-space: nowrap; }
-.eq-table td { text-align: center; border: 1px solid var(--border); padding: .35rem .6rem; min-width: 2.6rem; font-family: var(--mono); background: var(--surface); }
-.eq-table input { font-family: var(--mono); text-align: center; border: 1px solid var(--border); border-radius: 6px; padding: .15rem; }
 
 [hidden] { display: none !important; }

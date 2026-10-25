@@ -1,4 +1,4 @@
-// Section 6: binarization (lab: histograms and binarization).
+// Section 5: binarization (lab: histograms and binarization).
 
 // The valley between the two biggest hills of a histogram, or null if there is no clear one.
 // Returns { lo, hi, best }: any T from lo to hi counts as "in the valley".

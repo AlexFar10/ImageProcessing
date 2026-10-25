@@ -24,7 +24,6 @@ IP.SECTIONS = [
   { id: 'color', file: 'color.html', short: 'Color & gray', title: 'Color and grayscale' },
   { id: 'quantization', file: 'quantization.html', short: 'Quantization', title: 'Quantization and dithering' },
   { id: 'histograms', file: 'histograms.html', short: 'Histograms', title: 'Histograms' },
-  { id: 'pointops', file: 'pointops.html', short: 'Point operations', title: 'Point operations' },
   { id: 'binarization', file: 'binarization.html', short: 'Binarization', title: 'Binarization' },
   { id: 'glossary', file: 'glossary.html', short: 'Glossary', title: 'Glossary' }
 ];
@@ -411,54 +410,6 @@ IP.cumulative = function (hist) {
   return out;
 };
 
-// lut[gray]: apply a lookup table of 256 values to every pixel
-IP.applyLut = function (g, lut) { return IP.mapGray(g, function (x) { return lut[x]; }); };
-
-// Histogram equalization by hand (the lecture's 4 steps):
-//   cdf = np.cumsum(hist);  lut = np.round(cdf / cdf[-1] * 255).astype(np.uint8)
-IP.equalizeLut = function (g) {
-  var cdf = IP.cumulative(IP.histogram(g)), n = cdf[255];
-  return cdf.map(function (h) { return IP.roundHalfEven(h / n * 255); });
-};
-
-// cv2.equalizeHist(gray): OpenCV's version starts counting after the darkest used level,
-// and works in float32 (Math.fround copies that).
-IP.cvEqualizeLut = function (g) {
-  var hist = IP.histogram(g), total = g.data.length, lut = new Array(256).fill(0);
-  var i = 0;
-  while (hist[i] === 0) i++;
-  if (hist[i] === total) { lut.fill(i); return lut; }   // a flat image stays as it is
-  var scale = Math.fround(255 / Math.fround(total - hist[i]));
-  var sum = 0;
-  for (i++; i < 256; i++) {
-    sum += hist[i];
-    lut[i] = clip255(IP.roundHalfEven(Math.fround(sum * scale)));
-  }
-  return lut;
-};
-
-// Contrast stretching: (gray - lo) * 255 / (hi - lo), rounded and clipped
-//   out = np.clip(np.round((gray.astype(np.float64) - lo) * 255 / (hi - lo)), 0, 255).astype(np.uint8)
-IP.stretchLut = function (lo, hi) {
-  var lut = [];
-  for (var v = 0; v < 256; v++) lut.push(hi > lo ? clip255(IP.roundHalfEven((v - lo) * 255 / (hi - lo))) : v);
-  return lut;
-};
-
-// Gamma: out = np.round(255 * (gray / 255.0) ** gamma)
-IP.gammaLut = function (gamma) {
-  var lut = [];
-  for (var v = 0; v < 256; v++) lut.push(IP.roundHalfEven(255 * Math.pow(v / 255, gamma)));
-  return lut;
-};
-
-// Log: out = np.round(255 / np.log(256) * np.log(1 + gray))
-IP.logLut = function () {
-  var lut = [];
-  for (var v = 0; v < 256; v++) lut.push(IP.roundHalfEven(255 / Math.log(256) * Math.log(1 + v)));
-  return lut;
-};
-
 // cv2.threshold(gray, T, 255, cv2.THRESH_BINARY): 255 where gray > T, else 0 (INV swaps them)
 IP.threshold = function (g, T, inverse) {
   return IP.mapGray(g, function (x) { return (x > T) !== Boolean(inverse) ? 255 : 0; });
@@ -634,25 +585,6 @@ IP.drawHistogram = function (canvas, hist, opts) {
   return canvas;
 };
 
-// Draw a transfer curve out = lut[in] in a square box (input left to right, output bottom to top).
-IP.drawCurve = function (canvas, lut) {
-  var S = canvas.width = canvas.height = 260, pad = 2, size = S - 2 * pad;
-  var ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, S, S);
-  ctx.strokeStyle = '#e5e7eb';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(pad, pad, size, size);
-  ctx.beginPath(); ctx.moveTo(pad, pad + size); ctx.lineTo(pad + size, pad); ctx.stroke(); // identity, for comparison
-  ctx.strokeStyle = '#2f6fde';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  for (var i = 0; i < 256; i++) {
-    var x = pad + i / 255 * size, y = pad + size - lut[i] / 255 * size;
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-  return canvas;
-};
 // Small histogram for games: a single huge bar (like a pile-up at 0) is cut so the rest stays readable.
 IP.histogramCanvas = function (gray, opts) {
   return IP.drawHistogram(IP.el('canvas', { class: 'hist' }), IP.histogram(gray), opts || { clipTallest: true });

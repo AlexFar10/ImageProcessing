@@ -74,20 +74,6 @@ H = np.cumsum(hist)
 print(H[127], H[-1])
 
 print("== Section 5 ==")
-src = (gray * 0.4 + 30).astype(np.uint8)
-lo, hi = int(src.min()), int(src.max())
-out = (src.astype(np.float64) - lo) * 255 / (hi - lo)
-stretched = np.clip(np.round(out), 0, 255).astype(np.uint8)
-print(lo, hi, np.count_nonzero(np.bincount(stretched.ravel())))
-hist5 = np.bincount(src.ravel(), minlength=256)
-cdf = np.cumsum(hist5)
-lut = np.round(cdf / cdf[-1] * 255).astype(np.uint8)
-mine = lut[src]
-cv = cv2.equalizeHist(src)
-print(round(mine.mean(), 2), round(cv.mean(), 2))
-print(np.count_nonzero(mine != cv), np.abs(mine.astype(int) - cv).max())
-
-print("== Section 6 ==")
 h, w = gray.shape
 shade = 0.3 + 0.7 * np.arange(w) / (w - 1)
 dark = (gray * shade).astype(np.uint8)
