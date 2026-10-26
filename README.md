@@ -58,7 +58,7 @@ tools/check_expected.py    prints what every exercise solution prints (to check 
 
 ## Editing
 
-- **Look:** light theme only, four colors (text, muted gray, blue accent, red for mistakes), set at the top of `css/style.css`. Every topic page has four `<section class="part">` blocks (Theory, Demo, Code, Quick questions); `buildLayout()` in `js/core.js` turns them into tabs and sidebar links.
+- **Look:** light theme only, four colors (text, muted gray, blue accent, red for mistakes), set at the top of `css/style.css`. Every topic page has four `<section class="part">` blocks (Theory, Demo, Code, Quick questions; Binarization has no Code part); `buildLayout()` in `js/core.js` turns them into tabs and sidebar links.
 - **Text** is plain HTML in each page. Underline a glossary word with
   `<span class="term" data-term="pixel">pixels</span>`; the id must exist in `js/glossary-data.js`.
 - **New glossary term:** add an entry to `js/glossary-data.js`; the glossary page and pop-ups update by themselves.

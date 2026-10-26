@@ -41,42 +41,6 @@ function findValley(hist) {
   IP.onChange(update);
 })();
 
-/* ---------- Game: live cv2.threshold ---------- */
-Games.liveCode(document.getElementById('game-live-threshold'), {
-  title: 'cv2.threshold',
-  task: '',
-  parts: [
-    'T, binary = cv2.threshold(gray, ', { id: 't', type: 'range', value: 128, min: 0, max: 255, label: 'T' }, ', 255, ',
-    { id: 'type', type: 'select', value: 'bin', label: 'type', options: [{ value: 'bin', label: 'cv2.THRESH_BINARY' }, { value: 'inv', label: 'cv2.THRESH_BINARY_INV' }] }, ')\nprint(np.count_nonzero(binary))'
-  ],
-  render: function (v, out) {
-    var img = IP.threshold(IP.gray(), v.t, v.type === 'inv'), white = 0;
-    for (var i = 0; i < img.data.length; i++) if (img.data[i]) white++;
-    out.append(IP.el('div', { style: 'max-width:420px' }, IP.figure(img, '')));
-    return { kind: 'info', msg: 'Prints ' + white,
-      why: v.type === 'inv' ? 'INV: pixels darker than or equal to T become white.' : 'Pixels brighter than T become white (255).' };
-  }
-});
-
-/* ---------- Game: spot the bug (white and black swapped) ---------- */
-Games.spotBug(document.getElementById('game-bug-where'), {
-  title: 'Inside out',
-  task: 'The sky should be white. Click the wrong line.',
-  lines: [
-    'gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)',
-    'T = 128',
-    'binary = np.where(gray > T, 0, 255).astype(np.uint8)',
-    'cv2.imwrite("binary.png", binary)'
-  ],
-  bug: 2,
-  hints: { 0: 'Converting to gray first is right.', 1: '128 is a fine threshold here.', 3: 'Saving is fine.' },
-  explain: 'np.where(condition, if_true, if_false): bright pixels (gray > T) should get 255. This is THRESH_BINARY_INV by accident.',
-  show: function (out) {
-    var gray = IP.gray();
-    out.append(IP.el('div', { class: 'grid-2' }, IP.figure(IP.threshold(gray, 128, true), 'bug'), IP.figure(IP.threshold(gray, 128), 'fixed: np.where(gray > T, 255, 0)')));
-  }
-});
-
 /* ---------- Game (no code): click the valley ---------- */
 // A picture made for this game: bright coins on a dark table, so the histogram
 // has two clear peaks. Seeded noise, so it is the same picture every time.
@@ -135,14 +99,4 @@ Games.predict(document.getElementById('game-which-t'), {
       }, ['T = ' + T].concat([60, 128, 200].filter(function (o) { return o !== T; }).map(function (o) { return 'T = ' + o; })));
     });
   }
-});
-
-/* ---------- Exercise: expected values ---------- */
-IP.expected('expected-binarization', function (img) {
-  var binary = IP.threshold(IP.grayOf(img), 128), white = 0;
-  for (var i = 0; i < binary.data.length; i++) if (binary.data[i]) white++;
-  return [
-    ['<code>print(np.count_nonzero(binary))</code>', String(white)],
-    ['<code>print(np.array_equal(binary, mine))</code>', 'True']
-  ];
 });

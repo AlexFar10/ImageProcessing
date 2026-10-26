@@ -37,44 +37,6 @@
     </div>
   </section>
 
-  <!-- ============ Code ============ -->
-  <section class="part" id="code" data-title="Code">
-    <div id="game-live-threshold"></div>
-    <div id="game-bug-where"></div>
-
-    <div class="exercise">
-      <h3 style="margin-top:0">Exercise</h3>
-      <p>Make the image black and white with <b>T = 128</b>, count the white pixels, then do the same with <code>np.where</code>.</p>
-      <div class="code"><pre>
-import cv2
-import numpy as np
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-
-# 1. binary: cv2.threshold with T = 128 and cv2.THRESH_BINARY
-# 2. print how many pixels are white (np.count_nonzero)
-# 3. mine: the same with np.where(gray > 128, 255, 0)
-# 4. print whether binary and mine are equal (np.array_equal)
-</pre></div>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import cv2
-import numpy as np
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-
-T, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
-print(np.count_nonzero(binary))
-
-mine = np.where(gray > 128, 255, 0).astype(np.uint8)
-print(np.array_equal(binary, mine))
-</pre></div>
-      </details>
-      <div class="expected" id="expected-binarization"></div>
-    </div>
-  </section>
-
   <!-- ============ Quick questions ============ -->
   <section class="part" id="nocode" data-title="Quick questions">
     <div id="game-click-valley"></div>
