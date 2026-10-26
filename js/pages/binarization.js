@@ -77,30 +77,6 @@ Games.spotBug(document.getElementById('game-bug-where'), {
   }
 });
 
-/* ---------- Game: fill in adaptiveThreshold ---------- */
-// Any odd whole number from 3 up is a valid blockSize
-function oddBlock(v) { return /^\d+$/.test(v) && Number(v) >= 3 && Number(v) % 2 === 1; }
-Games.fillBlanks(document.getElementById('game-fill-adaptive'), {
-  title: 'Adaptive threshold',
-  task: '<code>dark</code> is the image with its left side in shadow.',
-  parts: [
-    'binary = cv2.adaptiveThreshold(dark, ', { answer: '255', options: ['1', '128', '255'], hint: 'The value given to white pixels: 255.' },
-    ',\n    cv2.', { id: 'method', answer: ['ADAPTIVE_THRESH_MEAN_C', 'ADAPTIVE_THRESH_GAUSSIAN_C'],
-      options: ['ADAPTIVE_THRESH_MEAN_C', 'ADAPTIVE_THRESH_GAUSSIAN_C', 'THRESH_BINARY'],
-      hint: 'First the adaptive method (MEAN_C or GAUSSIAN_C), then the threshold type.' },
-    ', cv2.THRESH_BINARY,\n    ', { id: 'block', accept: oddBlock, size: 4, hint: 'blockSize must be an odd number (3, 5, 7, …), so the pixel sits in the middle of its window.' },
-    ', 10)'
-  ],
-  explain: 'Both methods work: MEAN_C uses the plain mean of the window, GAUSSIAN_C gives the closer pixels more weight. ' +
-    'Any odd blockSize from 3 up is valid: small windows follow small details, big ones follow the light. Then C = 10.',
-  onCorrect: function (out, v) {
-    var dark = IP.unevenLight(IP.gray()), block = Math.min(Number(v.block), 151);   // keep it quick to draw
-    var method = v.method === 'ADAPTIVE_THRESH_MEAN_C' ? 'mean' : 'gaussian';
-    out.append(IP.el('div', { class: 'grid-2' }, IP.figure(dark, 'dark'),
-      IP.figure(IP.adaptive(dark, method, block, 10), (method === 'mean' ? 'MEAN_C' : 'GAUSSIAN_C') + ', blockSize ' + v.block)));
-  }
-});
-
 /* ---------- Game (no code): click the valley ---------- */
 // A picture made for this game: bright coins on a dark table, so the histogram
 // has two clear peaks. Seeded noise, so it is the same picture every time.
@@ -163,10 +139,10 @@ Games.predict(document.getElementById('game-which-t'), {
 
 /* ---------- Exercise: expected values ---------- */
 IP.expected('expected-binarization', function (img) {
-  var gray = IP.grayOf(img), dark = IP.unevenLight(gray);
-  function white(g) { var n = 0; for (var i = 0; i < g.data.length; i++) if (g.data[i]) n++; return n; }
+  var binary = IP.threshold(IP.grayOf(img), 128), white = 0;
+  for (var i = 0; i < binary.data.length; i++) if (binary.data[i]) white++;
   return [
-    ['<code>print(np.count_nonzero(binary), np.array_equal(binary, mine))</code>', white(IP.threshold(gray, 128)) + ' True'],
-    ['<code>print(np.count_nonzero(one), np.count_nonzero(adapt))</code>', white(IP.threshold(dark, 128)) + ' ' + white(IP.adaptiveMean(dark, 31, 10))]
+    ['<code>print(np.count_nonzero(binary))</code>', String(white)],
+    ['<code>print(np.array_equal(binary, mine))</code>', 'True']
   ];
 });

@@ -18,7 +18,7 @@
       <li><code>cv2.threshold(gray, T, 255, cv2.THRESH_BINARY)</code>. <code>THRESH_BINARY_INV</code> swaps white and black (for dark objects).</li>
       <li>Put T in the valley between the two <span class="term" data-term="peak">peaks</span> of the histogram.</li>
       <li>T too low: almost everything white. T too high: only the brightest spots survive.</li>
-      <li>Uneven light: one T cannot fit both sides. An <span class="term" data-term="adaptive-threshold">adaptive threshold</span> compares each pixel with the mean of its <code>blockSize × blockSize</code> neighbourhood minus <code>C</code>: a plain mean (<code>MEAN_C</code>) or one where closer pixels count more (<code>GAUSSIAN_C</code>). <code>blockSize</code> must be odd.</li>
+      <li>Uneven light: one T cannot fit both sides. An <span class="term" data-term="adaptive-threshold">adaptive threshold</span> gives every pixel its own T, from the pixels around it.</li>
     </ul>
   </section>
 
@@ -41,23 +41,20 @@
   <section class="part" id="code" data-title="Code">
     <div id="game-live-threshold"></div>
     <div id="game-bug-where"></div>
-    <div id="game-fill-adaptive"></div>
 
     <div class="exercise">
       <h3 style="margin-top:0">Exercise</h3>
-      <p>1. Threshold <code>gray</code> at <b>T = 128</b> with <code>cv2.THRESH_BINARY</code> (<code>binary</code>) and with <code>np.where(gray &gt; 128, 255, 0)</code> (<code>mine</code>). Check they match.</p>
-      <p>2. The starter code makes <code>dark</code>: the same image with its left side in shadow (from 30% light at the left edge to 100% at the right edge). Threshold <code>dark</code> once at <b>T = 128</b> (<code>one</code>), then with <code>cv2.adaptiveThreshold</code>: <b>maxValue 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, blockSize 31, C = 10</b> (<code>adapt</code>). Count the white pixels of both.</p>
+      <p>Make the image black and white with <b>T = 128</b>, count the white pixels, then do the same with <code>np.where</code>.</p>
       <div class="code"><pre>
 import cv2
 import numpy as np
 
 gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-h, w = gray.shape
-shade = 0.3 + 0.7 * np.arange(w) / (w - 1)
-dark = (gray * shade).astype(np.uint8)        # left side in shadow
 
-# name them: binary, mine (T = 128), one (T = 128 on dark), adapt (MEAN_C, 31, 10)
-# your code here
+# 1. binary: cv2.threshold with T = 128 and cv2.THRESH_BINARY
+# 2. print how many pixels are white (np.count_nonzero)
+# 3. mine: the same with np.where(gray > 128, 255, 0)
+# 4. print whether binary and mine are equal (np.array_equal)
 </pre></div>
       <details>
         <summary>Show solution</summary>
@@ -66,18 +63,12 @@ import cv2
 import numpy as np
 
 gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-h, w = gray.shape
-shade = 0.3 + 0.7 * np.arange(w) / (w - 1)
-dark = (gray * shade).astype(np.uint8)
 
 T, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
-mine = np.where(gray > 128, 255, 0).astype(np.uint8)
-print(np.count_nonzero(binary), np.array_equal(binary, mine))
+print(np.count_nonzero(binary))
 
-T, one = cv2.threshold(dark, 128, 255, cv2.THRESH_BINARY)
-adapt = cv2.adaptiveThreshold(dark, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
-                              cv2.THRESH_BINARY, 31, 10)
-print(np.count_nonzero(one), np.count_nonzero(adapt))
+mine = np.where(gray > 128, 255, 0).astype(np.uint8)
+print(np.array_equal(binary, mine))
 </pre></div>
       </details>
       <div class="expected" id="expected-binarization"></div>
