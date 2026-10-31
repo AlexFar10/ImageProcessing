@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Edges and sharpening · Image Processing Lab</title>
-  <link rel="stylesheet" href="css/style.css?v=20261103">
+  <link rel="stylesheet" href="css/style.css?v=20261104">
 </head>
 <body data-page="edges">
 <main>
@@ -90,197 +90,21 @@
 
   <!-- ============ Code ============ -->
   <section class="part" id="code" data-title="Code">
-    <div class="exercise">
-      <h3 style="margin-top:0">Exercise 5 · Sobel and the uint8 trap</h3>
-      <p>Compute Sobel with 8-bit and with float output, then the magnitude, then threshold it (as in the binarization lab).</p>
-      <div class="code"><pre>
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-
-# 1. gx8 = cv2.Sobel(gray, cv2.CV_8U, 1, 0)
-#    gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0);  gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1)
-# 2. print(np.count_nonzero(gx8), np.count_nonzero(gx &gt; 0), np.count_nonzero(gx &lt; 0))
-# 3. mag = cv2.magnitude(gx, gy); print(round(float(mag.max()), 1))
-# 4. mag8 = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-#    edges: mag8 thresholded at T = 50; show gx8, |gx|, mag8 and edges
-</pre></div>
-      <p><b>Question:</b> why does the 8-bit version lose about half of the edges?</p>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-
-gx8 = cv2.Sobel(gray, cv2.CV_8U, 1, 0)
-gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0)
-gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1)
-print(np.count_nonzero(gx8), np.count_nonzero(gx &gt; 0), np.count_nonzero(gx &lt; 0))
-
-mag = cv2.magnitude(gx, gy)
-print(round(float(mag.max()), 1))
-mag8 = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-T, edges = cv2.threshold(mag8, 50, 255, cv2.THRESH_BINARY)
-
-shown = [("gx8", gx8), ("|gx|", np.clip(np.abs(gx), 0, 255)), ("mag8", mag8), ("edges", edges)]
-for i, (name, img) in enumerate(shown):
-    plt.subplot(1, 4, i + 1)
-    plt.imshow(img, cmap="gray", vmin=0, vmax=255)
-    plt.title(name)
-    plt.axis("off")
-plt.show()
-</pre></div>
-      </details>
-      <div class="expected" id="expected-sobel"></div>
-    </div>
-
-    <div class="exercise">
-      <h3 style="margin-top:0">Exercise 6 · Laplacian sharpening</h3>
-      <p>Compute the Laplacian, then <code>f + c · lap</code> for c = −1 and c = +1.</p>
-      <div class="code"><pre>
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-
-# 1. lap = cv2.Laplacian(gray, cv2.CV_32F)     (kernel [0 1 0; 1 -4 1; 0 1 0])
-# 2. print(lap.min(), lap.max())
-# 3. minus = np.clip(gray - lap, 0, 255).astype(np.uint8)     c = -1
-#    plus = np.clip(gray + lap, 0, 255).astype(np.uint8)      c = +1
-# 4. print(round(minus.mean(), 2), round(plus.mean(), 2)); show gray, lap, minus, plus
-</pre></div>
-      <p><b>Question:</b> which sign sharpens, and why?</p>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-
-lap = cv2.Laplacian(gray, cv2.CV_32F)
-print(lap.min(), lap.max())
-minus = np.clip(gray - lap, 0, 255).astype(np.uint8)   # sharper: the centre is -4
-plus = np.clip(gray + lap, 0, 255).astype(np.uint8)    # softer
-print(round(minus.mean(), 2), round(plus.mean(), 2))
-
-shown = [("gray", gray), ("|lap|", np.clip(np.abs(lap), 0, 255)), ("c = -1", minus), ("c = +1", plus)]
-for i, (name, img) in enumerate(shown):
-    plt.subplot(1, 4, i + 1)
-    plt.imshow(img, cmap="gray", vmin=0, vmax=255)
-    plt.title(name)
-    plt.axis("off")
-plt.show()
-</pre></div>
-      </details>
-      <div class="expected" id="expected-laplacian"></div>
-    </div>
-
-    <div class="exercise">
-      <h3 style="margin-top:0">Bonus · Unsharp masking and separable filters</h3>
-      <p>Sharpen with unsharp masking (k = 1) and highboost (k = 4.5), then time a separable Gaussian against the full 2D one.</p>
-      <div class="code"><pre>
-import time
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-
-# 1. blur = cv2.GaussianBlur(gray, (31, 31), 5)
-# 2. mask = gray.astype(np.float32) - blur
-# 3. g = np.clip(gray + k * mask, 0, 255).astype(np.uint8) for k = 1 and k = 4.5; show them
-# 4. k1 = cv2.getGaussianKernel(31, 5); time cv2.sepFilter2D(gray, -1, k1, k1)
-#    and cv2.filter2D(gray, -1, k1 @ k1.T)
-</pre></div>
-      <p><b>Question:</b> how many multiplications per pixel does each version need for 31 × 31?</p>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import time
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-
-blur = cv2.GaussianBlur(gray, (31, 31), 5)
-mask = gray.astype(np.float32) - blur
-for i, k in enumerate((1, 4.5)):
-    g = np.clip(gray + k * mask, 0, 255).astype(np.uint8)
-    plt.subplot(1, 2, i + 1)
-    plt.imshow(g, cmap="gray", vmin=0, vmax=255)
-    plt.title(f"k = {k}")
-    plt.axis("off")
-plt.show()
-
-k1 = cv2.getGaussianKernel(31, 5)
-t0 = time.perf_counter()
-sep = cv2.sepFilter2D(gray, -1, k1, k1)
-t1 = time.perf_counter()
-full = cv2.filter2D(gray, -1, k1 @ k1.T)
-t2 = time.perf_counter()
-print(f"separable {t1 - t0:.5f} s, 2D {t2 - t1:.5f} s")
-print(np.abs(sep.astype(int) - full.astype(int)).max())   # 0 or 1: rounding only
-# separable: 31 + 31 = 62 multiplications per pixel, 2D: 31 * 31 = 961
-</pre></div>
-      </details>
-    </div>
-  </section>
-
-  <!-- ============ Quick questions ============ -->
-  <section class="part" id="nocode" data-title="Quick questions">
-    <div class="quiz">
-      <p class="q">A kernel whose coefficients sum to 0, on a flat area, gives…</p>
-      <div class="choices">
-        <button type="button" data-correct>0</button>
-        <button type="button">the same value</button>
-        <button type="button">255</button>
-      </div>
-      <p class="explain" hidden>All neighbours are equal, so the sum is value × (sum of coefficients) = 0.</p>
-    </div>
-    <div class="quiz">
-      <p class="q">With 8-bit (CV_8U) output, negative Sobel responses become…</p>
-      <div class="choices">
-        <button type="button" data-correct>0 (lost)</button>
-        <button type="button">positive</button>
-        <button type="button">wrap-around values</button>
-      </div>
-      <p class="explain" hidden>OpenCV saturates: everything below 0 is stored as 0, so edges going from bright to dark disappear.</p>
-    </div>
-    <div class="quiz">
-      <p class="q">Original + c · Laplacian (kernel with −4 in the centre, c = −1) gives…</p>
-      <div class="choices">
-        <button type="button" data-correct>a sharper image</button>
-        <button type="button">a blurrier image</button>
-        <button type="button">only edges</button>
-      </div>
-      <p class="explain" hidden>The dark side of each edge gets darker and the bright side brighter.</p>
-    </div>
-    <div class="quiz">
-      <p class="q">Unsharp masking with k &gt; 1 is called…</p>
-      <div class="choices">
-        <button type="button" data-correct>highboost</button>
-        <button type="button">lowpass</button>
-        <button type="button">median</button>
-      </div>
-      <p class="explain" hidden>k = 1 is unsharp masking; a bigger k boosts the details even more.</p>
-    </div>
+    <div id="game-fill-sobel"></div>
+    <div id="game-fill-sharpen"></div>
+    <div id="game-print7"></div>
+    <div id="game-which-edge"></div>
+    <div id="game-bug-8bit"></div>
+    <div id="game-bug-sign"></div>
   </section>
 </main>
-<script src="js/test-image.js?v=20261103"></script>
-<script src="js/filter-images.js?v=20261103"></script>
-<script src="js/glossary-data.js?v=20261103"></script>
-<script src="js/core.js?v=20261103"></script>
-<script src="js/filter.js?v=20261103"></script>
-<script src="js/diagram.js?v=20261103"></script>
-<script src="js/pages/edges.js?v=20261103"></script>
+<script src="js/test-image.js?v=20261104"></script>
+<script src="js/filter-images.js?v=20261104"></script>
+<script src="js/glossary-data.js?v=20261104"></script>
+<script src="js/core.js?v=20261104"></script>
+<script src="js/games.js?v=20261104"></script>
+<script src="js/filter.js?v=20261104"></script>
+<script src="js/diagram.js?v=20261104"></script>
+<script src="js/pages/edges.js?v=20261104"></script>
 </body>
 </html>

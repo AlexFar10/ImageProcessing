@@ -85,14 +85,11 @@ print(cv2.filter2D(row, -1, np.array([[1, 2, 3]], np.float32), borderType=cv2.BO
 print(cv2.GaussianBlur(gray, (0, 0), 3).shape)   # (0, 0) is allowed
 
 print("== Section 7 ==")
-gx8 = cv2.Sobel(gray, cv2.CV_8U, 1, 0)
-gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0)
-gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1)
-print(np.count_nonzero(gx8), np.count_nonzero(gx > 0), np.count_nonzero(gx < 0))
-print(round(float(cv2.magnitude(gx, gy).max()), 1))
-lap = cv2.Laplacian(gray, cv2.CV_32F)
-print(lap.min(), lap.max())
-minus = np.clip(gray - lap, 0, 255).astype(np.uint8)
-plus = np.clip(gray + lap, 0, 255).astype(np.uint8)
-print(round(minus.mean(), 2), round(plus.mean(), 2))
-
+# the answers of the "What does it print?" game
+row = np.array([10, 10, 10, 200, 200, 200])
+print(np.diff(row))
+print(row[2:] + row[:-2] - 2 * row[1:-1])
+k = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+print(k.sum(), (np.array([[10, 10, 200]] * 3, np.float32) * k).sum())
+print(cv2.Sobel(np.array([[200, 200, 10, 10]] * 3, np.uint8), cv2.CV_8U, 1, 0)[1])
+print(np.sqrt(30 ** 2 + 40 ** 2))
