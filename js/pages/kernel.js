@@ -271,8 +271,9 @@
     var g1 = Filter.gaussian1D(gsize, sigma);
     Filter.drawKernel(document.getElementById('kc-boxmap'), Filter.outer(Filter.box1D(k), Filter.box1D(k)));
     Filter.drawKernel(document.getElementById('kc-gaussmap'), Filter.outer(g1, g1));
-    document.getElementById('kc-boxmap-cap').textContent = 'box kernel ' + k + ' × ' + k + ': all weights equal';
-    document.getElementById('kc-gaussmap-cap').textContent = 'Gaussian kernel ' + gsize + ' × ' + gsize + ': strongest in the centre';
+    document.getElementById('kc-boxmap-cap').textContent = 'box ' + k + ' × ' + k + ': every weight 1/' + (k * k) + ' = ' + (1 / (k * k)).toFixed(4);
+    var mid = g1[(gsize - 1) / 2];
+    document.getElementById('kc-gaussmap-cap').textContent = 'Gaussian ' + gsize + ' × ' + gsize + ': centre ' + (mid * mid).toFixed(4) + ', corners ' + (g1[0] * g1[0]).toFixed(6);
   }
   var redraw = Filter.onFrame(draw);
   [boxEl, sigmaEl, pick].forEach(function (el) { el.addEventListener('input', redraw); });
