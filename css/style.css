@@ -265,3 +265,20 @@ main { padding: 2.5rem 3rem 4rem; max-width: 1080px; width: 100%; }
 .quiz .q, .exercise > h3 { padding-right: 5.5rem; }
 
 [hidden] { display: none !important; }
+
+/* ---------- filtering labs (sections 6 and 7) ---------- */
+.diagram-svg { display: block; width: 100%; max-width: 640px; height: auto; margin: 1.2rem 0; border: 1px solid var(--border); border-radius: var(--radius); }
+.presets { display: flex; flex-wrap: wrap; gap: .4rem; margin: .4rem 0 1rem; }
+.kernel-edit { border-collapse: collapse; margin: 0 0 .6rem; }
+.kernel-edit td { padding: 2px; }
+.kernel-edit input { width: 4.2em; padding: .35rem .3rem; text-align: center; font-family: var(--mono); border: 1.5px solid #534AB7; border-radius: 6px; background: #f1f0fc; }
+.kernel-edit input.blank-bad { border-color: var(--alert); background: var(--alert-soft); }
+.readout.calc { font-family: inherit; white-space: normal; }
+.calc-grid { border-collapse: collapse; margin: .5rem 0; font: .8rem var(--mono); }
+.calc-grid td { border: 1px solid var(--border); padding: .3rem .45rem; text-align: center; }
+.calc-grid td.outside { color: var(--muted); background: var(--bg); }
+.calc-grid .coef { color: #534AB7; }
+canvas.clickable { cursor: crosshair; }
+.num-grid { border-collapse: collapse; margin: 0 auto; font: .8rem var(--mono); }
+.num-grid td { width: 2.6em; height: 2.2em; text-align: center; border: 1px solid #fff; }
+.kernel-maps canvas { max-width: 180px; margin: 0 auto; }

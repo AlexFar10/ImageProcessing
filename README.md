@@ -1,7 +1,7 @@
 # Image Processing Lab – interactive site
 
 A small website for the Image Processing lab (2nd year). Students learn the first labs, histograms
-and binarization by playing with images and Python/OpenCV code.
+binarization and spatial filtering by playing with images and Python/OpenCV code.
 
 Plain HTML, CSS and JavaScript. No frameworks, no build step, no server, no external libraries,
 no tracking. It works on GitHub Pages and when `index.html` is opened straight from the folder.
@@ -20,6 +20,8 @@ color.html            2. Color and grayscale (lab 3)
 quantization.html     3. Quantization and dithering (lab 3)
 histograms.html       4. Histograms
 binarization.html     5. Binarization (lab: histograms and binarization)
+kernel.html           6. Kernel and blur (lab 5: spatial filtering)
+edges.html            7. Edges and sharpening (lab 5: spatial filtering)
 glossary.html         Glossary (built from js/glossary-data.js)
 
 css/style.css         all styles; light and dark colors are variables at the top
@@ -27,10 +29,16 @@ js/core.js            header, image loading, image operations, code blocks, pop-
 js/games.js           the 7 reusable game types
 js/glossary-data.js   every term: short text for the pop-up, page where it is explained
 js/test-image.js      landscape.png as text (generated, do not edit)
+js/filter-images.js   noisy.png and edges.png as text (generated, do not edit)
+js/filter.js          spatial filtering shared by sections 6-7: correlation, borders, box, Gaussian, Sobel
+js/diagram.js         helpers that draw the SVG illustrations of sections 6-7
 js/pages/*.js         the demos and games of each section
 
 images/landscape.png  the test image used by the site and the Python exercises
+images/noisy.png      landscape.png in gray + Gaussian noise (sigma 20)
+images/edges.png      sharp shapes, thin lines and text, for edge detection
 tools/make_test_image.py   draws landscape.png and regenerates js/test-image.js
+tools/make_filter_images.py makes noisy.png and edges.png and regenerates js/filter-images.js
 tools/check_expected.py    prints what every exercise solution prints (to check the site)
 ```
 

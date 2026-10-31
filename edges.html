@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edges and sharpening · Image Processing Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="edges">
+<main>
+  <h1>Edges and sharpening</h1>
+  <div id="image-bar"></div>
+
+  <!-- ============ Theory ============ -->
+  <section class="part" id="theory" data-title="Theory">
+    <h2>Derivative = difference between neighbours</h2>
+    <ul class="points">
+      <li>An edge is where the values change fast. A <span class="term" data-term="derivative">derivative</span> measures change.</li>
+      <li>First derivative: <code>f(x+1) − f(x)</code>.</li>
+      <li>Second derivative: <code>f(x+1) + f(x−1) − 2f(x)</code>.</li>
+      <li>Both are 0 on flat areas.</li>
+    </ul>
+    <div id="d-deriv"></div>
+
+    <h2>Sobel</h2>
+    <ul class="points">
+      <li><span class="term" data-term="sobel">Sobel</span>: two <span class="term" data-term="kernel">kernels</span>, one per direction. Both sum to 0, so flat areas give 0.</li>
+      <li><code>dx</code> (horizontal derivative) = <code>[-1 0 1; -2 0 2; -1 0 1]</code>: finds vertical edges.</li>
+      <li><code>dy</code> (vertical derivative) = <code>[-1 -2 -1; 0 0 0; 1 2 1]</code>: finds horizontal edges.</li>
+      <li>Edge strength: the <span class="term" data-term="gradient">gradient</span> magnitude <code>M = √(dx² + dy²)</code>.</li>
+      <li>Note: the lecture slide calls them g<sub>x</sub> / g<sub>y</sub> the other way round, because it takes x as the row direction. Here we use OpenCV's names.</li>
+    </ul>
+    <div id="d-sobel"></div>
+
+    <h2>Laplacian and sharpening</h2>
+    <ul class="points">
+      <li><span class="term" data-term="laplacian">Laplacian</span> = second derivative in both directions: 4 neighbours − 4 × centre, kernel <code>[0 1 0; 1 -4 1; 0 1 0]</code>.</li>
+      <li>Alone it shows only the edges, on a dark background.</li>
+      <li><span class="term" data-term="sharpening">Sharpening</span>: <code>g = f + c · Laplacian</code>, with <code>c = −1</code> for this kernel.</li>
+      <li><span class="term" data-term="unsharp-masking">Unsharp masking</span>: blur, subtract (the mask), add back: <code>g = f + k · mask</code>. k = 1: unsharp masking, k &gt; 1: <span class="term" data-term="highboost">highboost</span>.</li>
+    </ul>
+    <div id="d-lap"></div>
+    <p><a href="kernel.html">← Back: Kernel and blur</a></p>
+  </section>
+
+  <!-- ============ Demo ============ -->
+  <section class="part" id="demo" data-title="Demo">
+    <h2 style="margin-top:0">Derivatives of one row</h2>
+    <div class="controls">
+      <label>Edge at <input type="range" id="kd-pos" min="3" max="17" value="10"> <b id="kd-pos-val">10</b></label>
+      <label><input type="radio" name="kd-shape" value="step" checked> step</label>
+      <label><input type="radio" name="kd-shape" value="ramp"> ramp</label>
+    </div>
+    <canvas id="kd-plot" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px"></canvas>
+    <p class="caption" id="kd-note"></p>
+
+    <h2>Sobel</h2>
+    <div class="controls" id="ke-controls">
+      <label><input type="radio" name="ke-what" value="dx" checked> dx</label>
+      <label><input type="radio" name="ke-what" value="dy"> dy</label>
+      <label><input type="radio" name="ke-what" value="mag"> magnitude</label>
+      <label><input type="checkbox" id="ke-8bit"> 8-bit output (CV_8U)</label>
+      <label>Threshold <input type="range" id="ke-t" min="0" max="255" value="0"> <b id="ke-t-val">off</b></label>
+    </div>
+    <div class="code"><pre id="ke-code"></pre></div>
+    <div class="grid-2">
+      <figure class="figure"><canvas id="ke-src"></canvas><figcaption>gray</figcaption></figure>
+      <figure class="figure"><canvas id="ke-dst"></canvas><figcaption id="ke-cap"></figcaption></figure>
+    </div>
+
+    <h2>Laplacian and sharpening</h2>
+    <div class="controls" id="kf-controls">
+      <label><input type="radio" name="kf-mode" value="lap" checked> Laplacian only</label>
+      <label><input type="radio" name="kf-mode" value="sharp"> f + c · Laplacian</label>
+      <label><input type="radio" name="kf-mode" value="unsharp"> unsharp masking</label>
+      <label><input type="checkbox" id="kf-8bit"> 8-bit in between (CV_8U)</label>
+    </div>
+    <div class="controls">
+      <label data-for="sharp">c <input type="range" id="kf-c" min="-2" max="2" step="0.1" value="-1"> <b id="kf-c-val">-1</b></label>
+      <label data-for="unsharp">σ <input type="range" id="kf-sigma" min="0.5" max="10" step="0.5" value="5"> <b id="kf-sigma-val">5</b></label>
+      <label data-for="unsharp">k <input type="range" id="kf-k" min="0" max="5" step="0.1" value="1"> <b id="kf-k-val">1</b> <span class="caption">(4.5 = lecture example)</span></label>
+    </div>
+    <div class="code"><pre id="kf-code"></pre></div>
+    <div class="grid-3">
+      <figure class="figure"><canvas id="kf-src"></canvas><figcaption>f</figcaption></figure>
+      <figure class="figure" id="kf-detail-fig"><canvas id="kf-detail"></canvas><figcaption id="kf-detail-cap"></figcaption></figure>
+      <figure class="figure"><canvas id="kf-dst"></canvas><figcaption id="kf-cap"></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- ============ Code ============ -->
+  <section class="part" id="code" data-title="Code">
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise 5 · Sobel and the uint8 trap</h3>
+      <p>Compute Sobel with 8-bit and with float output, then the magnitude, then threshold it (as in the binarization lab).</p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+# 1. gx8 = cv2.Sobel(gray, cv2.CV_8U, 1, 0)
+#    gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0);  gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1)
+# 2. print(np.count_nonzero(gx8), np.count_nonzero(gx &gt; 0), np.count_nonzero(gx &lt; 0))
+# 3. mag = cv2.magnitude(gx, gy); print(round(float(mag.max()), 1))
+# 4. mag8 = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+#    edges: mag8 thresholded at T = 50; show gx8, |gx|, mag8 and edges
+</pre></div>
+      <p><b>Question:</b> why does the 8-bit version lose about half of the edges?</p>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+gx8 = cv2.Sobel(gray, cv2.CV_8U, 1, 0)
+gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0)
+gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1)
+print(np.count_nonzero(gx8), np.count_nonzero(gx &gt; 0), np.count_nonzero(gx &lt; 0))
+
+mag = cv2.magnitude(gx, gy)
+print(round(float(mag.max()), 1))
+mag8 = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+T, edges = cv2.threshold(mag8, 50, 255, cv2.THRESH_BINARY)
+
+shown = [("gx8", gx8), ("|gx|", np.clip(np.abs(gx), 0, 255)), ("mag8", mag8), ("edges", edges)]
+for i, (name, img) in enumerate(shown):
+    plt.subplot(1, 4, i + 1)
+    plt.imshow(img, cmap="gray", vmin=0, vmax=255)
+    plt.title(name)
+    plt.axis("off")
+plt.show()
+</pre></div>
+      </details>
+      <div class="expected" id="expected-sobel"></div>
+    </div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise 6 · Laplacian sharpening</h3>
+      <p>Compute the Laplacian, then <code>f + c · lap</code> for c = −1 and c = +1.</p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+# 1. lap = cv2.Laplacian(gray, cv2.CV_32F)     (kernel [0 1 0; 1 -4 1; 0 1 0])
+# 2. print(lap.min(), lap.max())
+# 3. minus = np.clip(gray - lap, 0, 255).astype(np.uint8)     c = -1
+#    plus = np.clip(gray + lap, 0, 255).astype(np.uint8)      c = +1
+# 4. print(round(minus.mean(), 2), round(plus.mean(), 2)); show gray, lap, minus, plus
+</pre></div>
+      <p><b>Question:</b> which sign sharpens, and why?</p>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+lap = cv2.Laplacian(gray, cv2.CV_32F)
+print(lap.min(), lap.max())
+minus = np.clip(gray - lap, 0, 255).astype(np.uint8)   # sharper: the centre is -4
+plus = np.clip(gray + lap, 0, 255).astype(np.uint8)    # softer
+print(round(minus.mean(), 2), round(plus.mean(), 2))
+
+shown = [("gray", gray), ("|lap|", np.clip(np.abs(lap), 0, 255)), ("c = -1", minus), ("c = +1", plus)]
+for i, (name, img) in enumerate(shown):
+    plt.subplot(1, 4, i + 1)
+    plt.imshow(img, cmap="gray", vmin=0, vmax=255)
+    plt.title(name)
+    plt.axis("off")
+plt.show()
+</pre></div>
+      </details>
+      <div class="expected" id="expected-laplacian"></div>
+    </div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Bonus · Unsharp masking and separable filters</h3>
+      <p>Sharpen with unsharp masking (k = 1) and highboost (k = 4.5), then time a separable Gaussian against the full 2D one.</p>
+      <div class="code"><pre>
+import time
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+# 1. blur = cv2.GaussianBlur(gray, (31, 31), 5)
+# 2. mask = gray.astype(np.float32) - blur
+# 3. g = np.clip(gray + k * mask, 0, 255).astype(np.uint8) for k = 1 and k = 4.5; show them
+# 4. k1 = cv2.getGaussianKernel(31, 5); time cv2.sepFilter2D(gray, -1, k1, k1)
+#    and cv2.filter2D(gray, -1, k1 @ k1.T)
+</pre></div>
+      <p><b>Question:</b> how many multiplications per pixel does each version need for 31 × 31?</p>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import time
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+blur = cv2.GaussianBlur(gray, (31, 31), 5)
+mask = gray.astype(np.float32) - blur
+for i, k in enumerate((1, 4.5)):
+    g = np.clip(gray + k * mask, 0, 255).astype(np.uint8)
+    plt.subplot(1, 2, i + 1)
+    plt.imshow(g, cmap="gray", vmin=0, vmax=255)
+    plt.title(f"k = {k}")
+    plt.axis("off")
+plt.show()
+
+k1 = cv2.getGaussianKernel(31, 5)
+t0 = time.perf_counter()
+sep = cv2.sepFilter2D(gray, -1, k1, k1)
+t1 = time.perf_counter()
+full = cv2.filter2D(gray, -1, k1 @ k1.T)
+t2 = time.perf_counter()
+print(f"separable {t1 - t0:.5f} s, 2D {t2 - t1:.5f} s")
+print(np.abs(sep.astype(int) - full.astype(int)).max())   # 0 or 1: rounding only
+# separable: 31 + 31 = 62 multiplications per pixel, 2D: 31 * 31 = 961
+</pre></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ Quick questions ============ -->
+  <section class="part" id="nocode" data-title="Quick questions">
+    <div class="quiz">
+      <p class="q">A kernel whose coefficients sum to 0, on a flat area, gives…</p>
+      <div class="choices">
+        <button type="button" data-correct>0</button>
+        <button type="button">the same value</button>
+        <button type="button">255</button>
+      </div>
+      <p class="explain" hidden>All neighbours are equal, so the sum is value × (sum of coefficients) = 0.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">With 8-bit (CV_8U) output, negative Sobel responses become…</p>
+      <div class="choices">
+        <button type="button" data-correct>0 (lost)</button>
+        <button type="button">positive</button>
+        <button type="button">wrap-around values</button>
+      </div>
+      <p class="explain" hidden>OpenCV saturates: everything below 0 is stored as 0, so edges going from bright to dark disappear.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">Original + c · Laplacian (kernel with −4 in the centre, c = −1) gives…</p>
+      <div class="choices">
+        <button type="button" data-correct>a sharper image</button>
+        <button type="button">a blurrier image</button>
+        <button type="button">only edges</button>
+      </div>
+      <p class="explain" hidden>The dark side of each edge gets darker and the bright side brighter.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">Unsharp masking with k &gt; 1 is called…</p>
+      <div class="choices">
+        <button type="button" data-correct>highboost</button>
+        <button type="button">lowpass</button>
+        <button type="button">median</button>
+      </div>
+      <p class="explain" hidden>k = 1 is unsharp masking; a bigger k boosts the details even more.</p>
+    </div>
+  </section>
+</main>
+<script src="js/test-image.js"></script>
+<script src="js/filter-images.js"></script>
+<script src="js/glossary-data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/filter.js"></script>
+<script src="js/diagram.js"></script>
+<script src="js/pages/edges.js"></script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kernel and blur · Image Processing Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="kernel">
+<main>
+  <h1>Kernel and blur</h1>
+  <div id="image-bar"></div>
+
+  <!-- ============ Theory ============ -->
+  <section class="part" id="theory" data-title="Theory">
+    <h2>The kernel</h2>
+    <ul class="points">
+      <li>A filter slides a small matrix, the <span class="term" data-term="kernel">kernel</span>, over the image.</li>
+      <li>At each pixel: multiply the neighbours by the coefficients and add. The sum is the new pixel.</li>
+      <li>The coefficients decide the effect. Sum 1: brightness stays. Sum 0: flat areas become 0.</li>
+      <li>A <span class="term" data-term="box-filter">box</span> kernel has equal coefficients: 1/9 for 3 × 3.</li>
+    </ul>
+    <div id="d-kernel"></div>
+
+    <h2>Correlation and convolution</h2>
+    <ul class="points">
+      <li><span class="term" data-term="convolution">Convolution</span> = <span class="term" data-term="correlation">correlation</span> with the kernel turned 180°.</li>
+      <li>Symmetric kernels (box, Gaussian, Laplacian): both give the same result.</li>
+      <li><code>cv2.filter2D</code> computes correlation. On this site filters are correlation too: the kernel is not flipped.</li>
+      <li>It only matters for kernels that are not symmetric: Sobel changes sign.</li>
+      <li>Practical note (not in the lecture): template matching and the "convolution" layers of neural networks are correlation as well.</li>
+    </ul>
+    <div id="d-corr"></div>
+
+    <h2>Borders</h2>
+    <ul class="points">
+      <li>Pixels near the edge miss some neighbours, so the image is <span class="term" data-term="padding">padded</span>.</li>
+      <li>Zero padding adds a frame of zeros: the border gets darker.</li>
+      <li>Other choices: replicate the edge, or reflect it.</li>
+      <li><code>cv2.filter2D</code> uses <code>BORDER_REFLECT_101</code> by default. For zeros: <code>borderType=cv2.BORDER_CONSTANT</code>.</li>
+    </ul>
+    <div id="d-border"></div>
+
+    <h2>Box and Gaussian</h2>
+    <ul class="points">
+      <li>Box: all weights equal. <span class="term" data-term="gaussian-filter">Gaussian</span>: the centre counts most, weights fall with distance.</li>
+      <li><span class="term" data-term="sigma">σ</span> sets how wide the blur is. Kernel size ≈ 6σ + 1 (beyond 3σ the values are tiny).</li>
+      <li>For the same blur a Gaussian needs a larger kernel (lecture: box 71 × 71 vs Gaussian 151 × 151, σ = 25).</li>
+      <li>Both are separable: one pass along the rows, one along the columns.</li>
+    </ul>
+    <div id="d-gauss"></div>
+    <p><a href="edges.html">Next: Edges and sharpening →</a></p>
+  </section>
+
+  <!-- ============ Demo ============ -->
+  <section class="part" id="demo" data-title="Demo">
+    <h2 style="margin-top:0">Kernel editor</h2>
+    <div class="controls" id="ka-controls">
+      <label>Border <select id="ka-border">
+        <option value="reflect">reflect-101 (default)</option>
+        <option value="replicate">replicate</option>
+        <option value="zeros">zeros</option>
+      </select></label>
+      <label>Output <select id="ka-out">
+        <option value="clip">clip 0…255 (CV_8U)</option>
+        <option value="abs">absolute value</option>
+        <option value="offset">+128</option>
+      </select></label>
+      <label><input type="checkbox" id="ka-divide"> divide by sum</label>
+    </div>
+    <div class="presets" id="ka-presets"></div>
+    <div class="grid-2">
+      <div>
+        <table class="kernel-edit" id="ka-kernel"></table>
+        <div class="code"><pre id="ka-code"></pre></div>
+      </div>
+      <div class="readout calc" id="ka-calc">Click a pixel of either image to see the calculation.</div>
+    </div>
+    <div class="grid-2">
+      <figure class="figure"><canvas id="ka-src" class="clickable"></canvas><figcaption>gray</figcaption></figure>
+      <figure class="figure"><canvas id="ka-dst" class="clickable"></canvas><figcaption>out</figcaption></figure>
+    </div>
+
+    <h2>Borders</h2>
+    <div class="controls">
+      <label>Border <select id="kb-border">
+        <option value="zeros">zeros</option>
+        <option value="replicate">replicate</option>
+        <option value="reflect">reflect-101</option>
+      </select></label>
+      <label>Box <input type="range" id="kb-size" min="3" max="31" step="2" value="31"> <b id="kb-size-val">31</b></label>
+    </div>
+    <div class="grid-2">
+      <figure class="figure"><table class="num-grid" id="kb-grid"></table><figcaption>8 × 8 image, every pixel 100, 3 × 3 box</figcaption></figure>
+      <figure class="figure"><canvas id="kb-photo"></canvas><figcaption id="kb-caption"></figcaption></figure>
+    </div>
+
+    <h2>Box vs Gaussian</h2>
+    <div class="controls" id="kc-controls">
+      <label>Box <input type="range" id="kc-box" min="3" max="31" step="2" value="11"> <b id="kc-box-val">11</b></label>
+      <label>σ <input type="range" id="kc-sigma" min="0.5" max="10" step="0.5" value="3"> <b id="kc-sigma-val">3</b></label>
+    </div>
+    <div class="grid-3">
+      <figure class="figure"><canvas id="kc-src"></canvas><figcaption>original</figcaption></figure>
+      <figure class="figure"><canvas id="kc-boximg"></canvas><figcaption id="kc-box-cap"></figcaption></figure>
+      <figure class="figure"><canvas id="kc-gaussimg"></canvas><figcaption id="kc-gauss-cap"></figcaption></figure>
+    </div>
+    <div class="grid-3 kernel-maps">
+      <div></div>
+      <figure class="figure"><canvas id="kc-boxmap" class="pixelated"></canvas><figcaption id="kc-boxmap-cap"></figcaption></figure>
+      <figure class="figure"><canvas id="kc-gaussmap" class="pixelated"></canvas><figcaption id="kc-gaussmap-cap"></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- ============ Code ============ -->
+  <section class="part" id="code" data-title="Code">
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise 1 · Convolution by hand</h3>
+      <p>Apply a 3 × 3 mean kernel with two loops on a crop, compare with <code>cv2.filter2D</code>, time both.</p>
+      <div class="code"><pre>
+import time
+import cv2
+import numpy as np
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+crop = gray[100:160, 100:180].astype(np.float32)   # 60 rows x 80 columns
+kernel = np.ones((3, 3), np.float32) / 9
+
+# 1. out = np.zeros_like(crop); loop r over 1..h-2 and c over 1..w-2 (skip the border):
+#    out[r, c] = (crop[r-1:r+2, c-1:c+2] * kernel).sum()
+# 2. ref = cv2.filter2D(crop, -1, kernel)
+# 3. print(round(float(out[30, 40]), 2))
+#    print(np.abs(out - ref)[1:-1, 1:-1].max() &lt; 1e-3)
+# 4. time both with time.perf_counter()
+</pre></div>
+      <p><b>Question:</b> why is <code>cv2.filter2D</code> so much faster than the loops?</p>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import time
+import cv2
+import numpy as np
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+crop = gray[100:160, 100:180].astype(np.float32)
+kernel = np.ones((3, 3), np.float32) / 9
+h, w = crop.shape
+
+t0 = time.perf_counter()
+out = np.zeros_like(crop)
+for r in range(1, h - 1):
+    for c in range(1, w - 1):
+        out[r, c] = (crop[r-1:r+2, c-1:c+2] * kernel).sum()
+t1 = time.perf_counter()
+ref = cv2.filter2D(crop, -1, kernel)
+t2 = time.perf_counter()
+
+print(round(float(out[30, 40]), 2))
+print(np.abs(out - ref)[1:-1, 1:-1].max() &lt; 1e-3)
+print(f"loops {t1 - t0:.4f} s, filter2D {t2 - t1:.6f} s")
+</pre></div>
+      </details>
+      <div class="expected" id="expected-by-hand"></div>
+    </div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise 2 · Guess the kernel</h3>
+      <p>Five kernels. Write what you expect as a comment first, then run <code>cv2.filter2D</code> and check.</p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+kernels = {
+    "identity": np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]], np.float32),
+    "box":      np.ones((3, 3), np.float32) / 9,
+    "shift":    np.array([[0, 0, 0], [0, 0, 1], [0, 0, 0]], np.float32),
+    "edges":    np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]], np.float32),
+    "sharpen":  np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32),
+}
+# 1. a comment with your guess for each kernel
+# 2. out[name] = cv2.filter2D(gray, -1, k) for every kernel; show the five results
+# 3. print(np.array_equal(out["shift"][:, :-1], gray[:, 1:]))
+</pre></div>
+      <p><b>Question:</b> what does the off-centre 1 do, and in which direction?</p>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+kernels = {
+    "identity": np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]], np.float32),  # no change
+    "box":      np.ones((3, 3), np.float32) / 9,                          # blur
+    "shift":    np.array([[0, 0, 0], [0, 0, 1], [0, 0, 0]], np.float32),  # moves 1 pixel left
+    "edges":    np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]], np.float32),  # vertical edges (dark to bright)
+    "sharpen":  np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32),  # sharper
+}
+out = {name: cv2.filter2D(gray, -1, k) for name, k in kernels.items()}
+print(np.array_equal(out["shift"][:, :-1], gray[:, 1:]))
+
+for i, name in enumerate(kernels):
+    plt.subplot(1, 5, i + 1)
+    plt.imshow(out[name], cmap="gray", vmin=0, vmax=255)
+    plt.title(name)
+    plt.axis("off")
+plt.show()
+</pre></div>
+      </details>
+      <div class="expected" id="expected-guess"></div>
+    </div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise 3 · Borders</h3>
+      <p>Blur a 5 × 5 image of 100 with a 3 × 3 box, once with zeros around it and once reflected. Then blur the test image with a 31 × 31 box and zeros.</p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+flat = np.full((5, 5), 100, np.uint8)
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+# 1. zero = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_CONSTANT)
+#    refl = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_REFLECT)
+# 2. print the four corners and zero[0, 2] (an edge pixel), the same for refl
+# 3. big = cv2.blur(gray, (31, 31), borderType=cv2.BORDER_CONSTANT); show it
+</pre></div>
+      <p><b>Question:</b> how wide is the dark frame of <code>big</code>, and why?</p>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+flat = np.full((5, 5), 100, np.uint8)
+gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
+
+zero = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_CONSTANT)
+refl = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_REFLECT)
+print(zero[0, 0], zero[0, 4], zero[4, 0], zero[4, 4], zero[0, 2])
+print(refl[0, 0], refl[0, 4], refl[4, 0], refl[4, 4], refl[0, 2])
+
+big = cv2.blur(gray, (31, 31), borderType=cv2.BORDER_CONSTANT)
+plt.imshow(big, cmap="gray", vmin=0, vmax=255)
+plt.show()
+</pre></div>
+      </details>
+      <div class="expected">
+        <h3>Expected output</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th></th><th>any image</th></tr></thead>
+          <tbody>
+            <tr><td><code>print(zero[0, 0], …, zero[0, 2])</code></td><td class="val">44 44 44 44 67</td></tr>
+            <tr><td><code>print(refl[0, 0], …, refl[0, 2])</code></td><td class="val">100 100 100 100 100</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="exercise">
+      <h3 style="margin-top:0">Exercise 4 · Box vs Gaussian</h3>
+      <p>Blur <code>noisy.png</code> with boxes and Gaussians of growing size and compare.</p>
+      <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+noisy = cv2.imread("noisy.png", cv2.IMREAD_GRAYSCALE)
+
+# 1. cv2.blur(noisy, (k, k)) for k = 3, 11, 21
+# 2. cv2.GaussianBlur(noisy, (0, 0), s) for s = 1, 3, 7
+# 3. show the noisy image and the six results in one row
+# 4. diff = cv2.absdiff(box 11, the Gaussian that looks most like it); print(diff.mean())
+</pre></div>
+      <p><b>Question:</b> which one keeps the edges (house, fence) better at the same amount of smoothing?</p>
+      <details>
+        <summary>Show solution</summary>
+        <div class="code"><pre>
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+noisy = cv2.imread("noisy.png", cv2.IMREAD_GRAYSCALE)
+results = [("noisy", noisy)]
+for k in (3, 11, 21):
+    results.append((f"box {k}", cv2.blur(noisy, (k, k))))
+for s in (1, 3, 7):
+    results.append((f"sigma {s}", cv2.GaussianBlur(noisy, (0, 0), s)))
+
+for i, (name, img) in enumerate(results):
+    plt.subplot(1, 7, i + 1)
+    plt.imshow(img, cmap="gray", vmin=0, vmax=255)
+    plt.title(name)
+    plt.axis("off")
+plt.show()
+
+diff = cv2.absdiff(cv2.blur(noisy, (11, 11)), cv2.GaussianBlur(noisy, (0, 0), 3))
+print(diff.mean())   # small: the two look alike
+</pre></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ Quick questions ============ -->
+  <section class="part" id="nocode" data-title="Quick questions">
+    <div class="quiz">
+      <p class="q">A 3 × 3 kernel with all coefficients 1/9 gives…</p>
+      <div class="choices">
+        <button type="button" data-correct>blur</button>
+        <button type="button">edges</button>
+        <button type="button">nothing</button>
+      </div>
+      <p class="explain" hidden>Each pixel becomes the mean of its 9 neighbours: details are smoothed out.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">You blur a uniform image of 100 with a 3 × 3 box and zero padding. A corner pixel becomes…</p>
+      <div class="choices">
+        <button type="button">100</button>
+        <button type="button" data-correct>about 44</button>
+        <button type="button">0</button>
+      </div>
+      <p class="explain" hidden>The window holds 4 pixels of 100 and 5 zeros: 400 / 9 ≈ 44.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">For a symmetric kernel, correlation and convolution give…</p>
+      <div class="choices">
+        <button type="button" data-correct>the same result</button>
+        <button type="button">opposite results</button>
+      </div>
+      <p class="explain" hidden>Turning a symmetric kernel by 180° gives the same kernel.</p>
+    </div>
+    <div class="quiz">
+      <p class="q">To get the same blur as a box, a Gaussian kernel must be…</p>
+      <div class="choices">
+        <button type="button" data-correct>larger</button>
+        <button type="button">smaller</button>
+        <button type="button">the same size</button>
+      </div>
+      <p class="explain" hidden>Its outer weights are small, so it needs more room (lecture: 151 × 151 vs a 71 × 71 box).</p>
+    </div>
+  </section>
+</main>
+<script src="js/test-image.js"></script>
+<script src="js/filter-images.js"></script>
+<script src="js/glossary-data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/filter.js"></script>
+<script src="js/diagram.js"></script>
+<script src="js/pages/kernel.js"></script>
+</body>
+</html>

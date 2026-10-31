@@ -25,6 +25,8 @@ IP.SECTIONS = [
   { id: 'quantization', file: 'quantization.html', short: 'Quantization', title: 'Quantization and dithering' },
   { id: 'histograms', file: 'histograms.html', short: 'Histograms', title: 'Histograms' },
   { id: 'binarization', file: 'binarization.html', short: 'Binarization', title: 'Binarization' },
+  { id: 'kernel', file: 'kernel.html', short: 'Kernel & blur', title: 'Kernel and blur' },
+  { id: 'edges', file: 'edges.html', short: 'Edges & sharpening', title: 'Edges and sharpening' },
   { id: 'glossary', file: 'glossary.html', short: 'Glossary', title: 'Glossary' }
 ];
 
@@ -166,6 +168,9 @@ function decode(blobOrUrl) {
       });
     });
 }
+
+IP.decode = decode;           // used by filter.js for its extra images
+IP.readPixels = readPixels;
 
 IP.loadPhoto = function (file) {
   return decode(file).then(function (bmp) {
