@@ -177,18 +177,6 @@ Filter.ready = function (fn) {
 // True once the test image and the two extra images are decoded
 Filter.loaded = function () { return !!IP.testColor && !extraReady; };
 
-// The gray image for a picker value: 'image' (test image or photo), 'edges', 'noisy'
-Filter.image = function (name) { return name === 'image' ? IP.gray() : Filter.extra[name]; };
-
-// A <select> to choose the image of one demo
-Filter.picker = function (value) {
-  var sel = IP.el('select', { 'aria-label': 'Image' },
-    IP.el('option', { value: 'image', text: 'Test image / my photo' }),
-    IP.el('option', { value: 'edges', text: 'edges.png' }),
-    IP.el('option', { value: 'noisy', text: 'noisy.png' }));
-  sel.value = value || 'image';
-  return sel;
-};
 
 /* ---------- drawings ---------- */
 

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kernel and blur · Image Processing Lab</title>
-  <link rel="stylesheet" href="css/style.css?v=20261106">
+  <link rel="stylesheet" href="css/style.css?v=20261107">
 </head>
 <body data-page="kernel">
 <main>
@@ -59,8 +59,6 @@
       <label>Kernel <select id="ks-kernel"></select></label>
       <button class="btn" type="button" id="ks-step">Next pixel</button>
       <button class="btn secondary" type="button" id="ks-play">Play</button>
-      <button class="btn secondary" type="button" id="ks-all">All</button>
-      <button class="btn secondary" type="button" id="ks-reset">Reset</button>
     </div>
     <div class="slide-demo">
       <figure class="figure"><div class="table-scroll"><table class="num-grid slide" id="ks-in"></table></div><figcaption>image (gray border = reflected pixels)</figcaption></figure>
@@ -69,7 +67,6 @@
     </div>
     <div class="readout calc" id="ks-calc"></div>
     <h3>The same kernel on a whole image</h3>
-    <div class="controls" id="ks-img-controls"></div>
     <div class="grid-2">
       <figure class="figure"><canvas id="ks-src"></canvas><figcaption>gray</figcaption></figure>
       <figure class="figure"><canvas id="ks-dst"></canvas><figcaption id="ks-dst-cap"></figcaption></figure>
@@ -77,12 +74,9 @@
 
     <h2>Borders</h2>
     <div class="controls">
-      <label>Border <select id="kb-border">
-        <option value="zeros">zeros</option>
-        <option value="replicate">replicate</option>
-        <option value="reflect">reflect-101</option>
-      </select></label>
-      <label>Box <input type="range" id="kb-size" min="3" max="31" step="2" value="31"> <b id="kb-size-val">31</b></label>
+      <label><input type="radio" name="kb-border" value="zeros" checked> zeros</label>
+      <label><input type="radio" name="kb-border" value="replicate"> replicate</label>
+      <label><input type="radio" name="kb-border" value="reflect"> reflect-101</label>
     </div>
     <div class="grid-2">
       <figure class="figure"><table class="num-grid" id="kb-grid"></table><figcaption>8 × 8 image, every pixel 100, 3 × 3 box</figcaption></figure>
@@ -90,12 +84,12 @@
     </div>
 
     <h2>Box vs Gaussian</h2>
-    <div class="controls" id="kc-controls">
+    <div class="controls">
       <label>Box <input type="range" id="kc-box" min="3" max="31" step="2" value="11"> <b id="kc-box-val">11</b></label>
       <label>σ <input type="range" id="kc-sigma" min="0.5" max="10" step="0.5" value="3"> <b id="kc-sigma-val">3</b></label>
     </div>
     <div class="grid-3">
-      <figure class="figure"><canvas id="kc-src"></canvas><figcaption>original</figcaption></figure>
+      <figure class="figure"><canvas id="kc-src"></canvas><figcaption>noisy.png</figcaption></figure>
       <figure class="figure"><canvas id="kc-boximg"></canvas><figcaption id="kc-box-cap"></figcaption></figure>
       <figure class="figure"><canvas id="kc-gaussimg"></canvas><figcaption id="kc-gauss-cap"></figcaption></figure>
     </div>
@@ -112,13 +106,13 @@
     <div id="game-bug-even"></div>
   </section>
 </main>
-<script src="js/test-image.js?v=20261106"></script>
-<script src="js/filter-images.js?v=20261106"></script>
-<script src="js/glossary-data.js?v=20261106"></script>
-<script src="js/core.js?v=20261106"></script>
-<script src="js/games.js?v=20261106"></script>
-<script src="js/filter.js?v=20261106"></script>
-<script src="js/diagram.js?v=20261106"></script>
-<script src="js/pages/kernel.js?v=20261106"></script>
+<script src="js/test-image.js?v=20261107"></script>
+<script src="js/filter-images.js?v=20261107"></script>
+<script src="js/glossary-data.js?v=20261107"></script>
+<script src="js/core.js?v=20261107"></script>
+<script src="js/games.js?v=20261107"></script>
+<script src="js/filter.js?v=20261107"></script>
+<script src="js/diagram.js?v=20261107"></script>
+<script src="js/pages/kernel.js?v=20261107"></script>
 </body>
 </html>

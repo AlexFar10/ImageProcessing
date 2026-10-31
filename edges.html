@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Edges and sharpening · Image Processing Lab</title>
-  <link rel="stylesheet" href="css/style.css?v=20261106">
+  <link rel="stylesheet" href="css/style.css?v=20261107">
 </head>
 <body data-page="edges">
 <main>
@@ -46,28 +46,26 @@
   <!-- ============ Demo ============ -->
   <section class="part" id="demo" data-title="Demo">
     <h2 style="margin-top:0">Sobel</h2>
-    <div class="controls" id="ke-controls">
+    <div class="controls">
       <label><input type="radio" name="ke-what" value="dx" checked> dx</label>
       <label><input type="radio" name="ke-what" value="dy"> dy</label>
       <label><input type="radio" name="ke-what" value="mag"> magnitude</label>
-      <label><input type="checkbox" id="ke-8bit"> 8-bit (CV_8U)</label>
+      <label><input type="radio" name="ke-what" value="dx8"> dx in 8 bits</label>
     </div>
-    <div class="code"><pre id="ke-code"></pre></div>
     <div class="grid-2">
       <figure class="figure"><canvas id="ke-src"></canvas><figcaption>gray</figcaption></figure>
       <figure class="figure"><canvas id="ke-dst"></canvas><figcaption id="ke-cap"></figcaption></figure>
     </div>
 
-    <h2>Laplacian and sharpening</h2>
-    <div class="controls" id="kf-controls">
+    <h2>Sharpening</h2>
+    <div class="controls">
       <label><input type="radio" name="kf-mode" value="lap" checked> Laplacian</label>
       <label><input type="radio" name="kf-mode" value="sharp"> f − Laplacian</label>
-      <label><input type="radio" name="kf-mode" value="unsharp"> unsharp masking</label>
-      <label id="kf-k-label">k <input type="range" id="kf-k" min="0" max="5" step="0.5" value="1"> <b id="kf-k-val">1</b></label>
+      <label><input type="radio" name="kf-mode" value="k1"> unsharp masking (k = 1)</label>
+      <label><input type="radio" name="kf-mode" value="k45"> highboost (k = 4.5)</label>
     </div>
-    <div class="code"><pre id="kf-code"></pre></div>
     <div class="grid-2">
-      <figure class="figure"><canvas id="kf-src"></canvas><figcaption>f</figcaption></figure>
+      <figure class="figure"><canvas id="kf-src"></canvas><figcaption>gray</figcaption></figure>
       <figure class="figure"><canvas id="kf-dst"></canvas><figcaption id="kf-cap"></figcaption></figure>
     </div>
   </section>
@@ -82,13 +80,13 @@
     <div id="game-bug-sign"></div>
   </section>
 </main>
-<script src="js/test-image.js?v=20261106"></script>
-<script src="js/filter-images.js?v=20261106"></script>
-<script src="js/glossary-data.js?v=20261106"></script>
-<script src="js/core.js?v=20261106"></script>
-<script src="js/games.js?v=20261106"></script>
-<script src="js/filter.js?v=20261106"></script>
-<script src="js/diagram.js?v=20261106"></script>
-<script src="js/pages/edges.js?v=20261106"></script>
+<script src="js/test-image.js?v=20261107"></script>
+<script src="js/filter-images.js?v=20261107"></script>
+<script src="js/glossary-data.js?v=20261107"></script>
+<script src="js/core.js?v=20261107"></script>
+<script src="js/games.js?v=20261107"></script>
+<script src="js/filter.js?v=20261107"></script>
+<script src="js/diagram.js?v=20261107"></script>
+<script src="js/pages/edges.js?v=20261107"></script>
 </body>
 </html>

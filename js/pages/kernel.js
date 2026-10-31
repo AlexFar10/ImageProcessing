@@ -194,8 +194,6 @@
 
   function stop() { clearInterval(timer); timer = null; document.getElementById('ks-play').textContent = 'Play'; }
   document.getElementById('ks-step').onclick = function () { stop(); show(done + 1); };
-  document.getElementById('ks-all').onclick = function () { stop(); show(H * W); };
-  document.getElementById('ks-reset').onclick = function () { stop(); show(0); };
   document.getElementById('ks-play').onclick = function () {
     if (timer) { stop(); return; }
     if (done >= H * W) show(0);
@@ -204,18 +202,15 @@
   };
 
   // The same kernel on a whole image
-  var pick = Filter.picker('image');
-  document.getElementById('ks-img-controls').append(IP.el('label', {}, 'Image ', pick));
   function drawImage() {
     if (!Filter.loaded()) return;
-    var k = kernel(), gray = Filter.image(pick.value);
+    var k = kernel(), gray = IP.gray();
     var rows = k.rows.map(function (row) { return row.map(function (v) { return v / k.div; }); });
     IP.draw(document.getElementById('ks-src'), gray);
     IP.draw(document.getElementById('ks-dst'), Filter.toGray(Filter.correlate(Filter.fromGray(gray), Filter.kernel(rows), 'reflect')));
     document.getElementById('ks-dst-cap').textContent = 'cv2.filter2D(gray, -1, kernel): ' + Filter.PRESETS[sel.value].name;
   }
   sel.addEventListener('input', function () { stop(); build(); show(0); drawImage(); });
-  pick.addEventListener('input', drawImage);
   build(); show(0);
   Filter.ready(drawImage);
   IP.onChange(drawImage);
@@ -223,12 +218,12 @@
 
 /* ---------- Demo B: borders ---------- */
 (function () {
-  var border = document.getElementById('kb-border'), size = document.getElementById('kb-size');
   function draw() {
+    var border = document.querySelector('input[name=kb-border]:checked').value;
     // 8 x 8 image of 100, 3 x 3 box: the numbers
     var flat = Filter.make(8, 8);
     flat.data.fill(100);
-    var small = Filter.toGray(Filter.box(flat, 3, border.value));
+    var small = Filter.toGray(Filter.box(flat, 3, border));
     var grid = document.getElementById('kb-grid');
     grid.innerHTML = '';
     for (var r = 0; r < 8; r++) {
@@ -239,15 +234,11 @@
       }
       grid.appendChild(tr);
     }
-    // the test image with a big box
-    var k = Number(size.value);
-    document.getElementById('kb-size-val').textContent = k;
-    IP.draw(document.getElementById('kb-photo'), Filter.toGray(Filter.box(Filter.fromGray(IP.gray()), k, border.value)));
-    document.getElementById('kb-caption').textContent = 'cv2.blur(gray, (' + k + ', ' + k + ')), border ' + border.selectedOptions[0].text;
+    // the test image with a big 31 x 31 box
+    IP.draw(document.getElementById('kb-photo'), Filter.toGray(Filter.box(Filter.fromGray(IP.gray()), 31, border)));
+    document.getElementById('kb-caption').textContent = 'cv2.blur(gray, (31, 31)), border: ' + border;
   }
-  var redraw = Filter.onFrame(draw);
-  border.addEventListener('input', redraw);
-  size.addEventListener('input', redraw);
+  document.querySelectorAll('input[name=kb-border]').forEach(function (r) { r.addEventListener('input', draw); });
   IP.ready(draw);
   IP.onChange(draw);
 })();
@@ -291,12 +282,10 @@ function drawProfile(k, sigma, gsize) {
   ctx.fillStyle = '#000'; ctx.fillText('Gaussian σ = ' + sigma + ', ' + gsize + ' × ' + gsize, W / 2 + 36, 25);
 }
 (function () {
-  var pick = Filter.picker('noisy');
-  document.getElementById('kc-controls').prepend(IP.el('label', {}, 'Image ', pick));
   var boxEl = document.getElementById('kc-box'), sigmaEl = document.getElementById('kc-sigma');
   function draw() {
     if (!Filter.loaded()) return;
-    var gray = Filter.image(pick.value), f = Filter.fromGray(gray);
+    var gray = Filter.extra.noisy, f = Filter.fromGray(gray);
     var k = Number(boxEl.value), sigma = Number(sigmaEl.value), gsize = Filter.gaussianSize(sigma);
     document.getElementById('kc-box-val').textContent = k;
     document.getElementById('kc-sigma-val').textContent = sigma + '  (size ' + gsize + ' × ' + gsize + ')';
@@ -308,7 +297,7 @@ function drawProfile(k, sigma, gsize) {
     drawProfile(k, sigma, gsize);
   }
   var redraw = Filter.onFrame(draw);
-  [boxEl, sigmaEl, pick].forEach(function (el) { el.addEventListener('input', redraw); });
+  [boxEl, sigmaEl].forEach(function (el) { el.addEventListener('input', redraw); });
   Filter.ready(draw);
   IP.onChange(draw);
 })();

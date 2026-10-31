@@ -42,70 +42,55 @@
   document.getElementById('d-lap').innerHTML = D.svg(470, 252, l, 'Sharpening a step: 10 10 10 200 200 200 becomes 10 0 255 200 around the edge');
 })();
 
-/* ---------- Demo: Sobel ---------- */
+/* ---------- Demo: Sobel (one choice: dx, dy, magnitude, dx in 8 bits) ---------- */
 (function () {
-  var pick = Filter.picker('edges');
-  document.getElementById('ke-controls').prepend(IP.el('label', {}, 'Image ', pick));
-  var bit8 = document.getElementById('ke-8bit');
-  function what() { return document.querySelector('input[name=ke-what]:checked').value; }
+  var CAPTION = {
+    dx: 'cv2.Sobel(gray, cv2.CV_32F, 1, 0), absolute value: vertical edges',
+    dy: 'cv2.Sobel(gray, cv2.CV_32F, 0, 1), absolute value: horizontal edges',
+    mag: 'cv2.magnitude(gx, gy): edges in every direction',
+    dx8: 'cv2.Sobel(gray, cv2.CV_8U, 1, 0): negatives cut to 0, half of the edges are lost'
+  };
   function draw() {
-    if (!Filter.loaded()) return;
-    var gray = Filter.image(pick.value), f = Filter.fromGray(gray), w = what();
-    var dx = Filter.sobelX(f), dy = Filter.sobelY(f);
-    if (bit8.checked) { dx = Filter.saturate(dx); dy = Filter.saturate(dy); }   // CV_8U: negatives become 0
-    var shown = w === 'dx' ? dx : w === 'dy' ? dy : Filter.make(f.width, f.height);
-    if (w === 'mag') for (var i = 0; i < shown.data.length; i++) shown.data[i] = Math.hypot(dx.data[i], dy.data[i]);
+    var w = document.querySelector('input[name=ke-what]:checked').value, gray = IP.gray(), f = Filter.fromGray(gray), out;
+    if (w === 'dx') out = Filter.toGray(Filter.sobelX(f), 'abs');
+    else if (w === 'dy') out = Filter.toGray(Filter.sobelY(f), 'abs');
+    else if (w === 'dx8') out = Filter.toGray(Filter.sobelX(f), 'clip');
+    else {
+      var gx = Filter.sobelX(f), gy = Filter.sobelY(f), m = Filter.make(f.width, f.height);
+      for (var i = 0; i < m.data.length; i++) m.data[i] = Math.hypot(gx.data[i], gy.data[i]);
+      out = Filter.toGray(m);
+    }
     IP.draw(document.getElementById('ke-src'), gray);
-    IP.draw(document.getElementById('ke-dst'), Filter.toGray(shown, 'abs'));
-    var depth = bit8.checked ? 'cv2.CV_8U' : 'cv2.CV_32F';
-    var code = w === 'dx' ? 'out = cv2.Sobel(gray, ' + depth + ', 1, 0)' : w === 'dy' ? 'out = cv2.Sobel(gray, ' + depth + ', 0, 1)'
-      : 'gx = cv2.Sobel(gray, ' + depth + ', 1, 0)\ngy = cv2.Sobel(gray, ' + depth + ', 0, 1)\nout = cv2.magnitude(gx.astype(np.float32), gy.astype(np.float32))';
-    document.getElementById('ke-code').innerHTML = IP.highlight(code);
-    document.getElementById('ke-cap').textContent = (w === 'dx' ? 'dx: vertical edges' : w === 'dy' ? 'dy: horizontal edges' : 'magnitude: all edges') +
-      (bit8.checked ? ' (8-bit: only dark → bright survives)' : ' (absolute value)');
+    IP.draw(document.getElementById('ke-dst'), out);
+    document.getElementById('ke-cap').textContent = CAPTION[w];
   }
-  var redraw = Filter.onFrame(draw);
-  pick.addEventListener('input', redraw);
-  bit8.addEventListener('input', redraw);
-  document.querySelectorAll('input[name=ke-what]').forEach(function (r) { r.addEventListener('input', redraw); });
-  Filter.ready(draw);
+  document.querySelectorAll('input[name=ke-what]').forEach(function (r) { r.addEventListener('input', draw); });
+  IP.ready(draw);
   IP.onChange(draw);
 })();
 
-/* ---------- Demo: Laplacian and sharpening ---------- */
+/* ---------- Demo: sharpening (one choice) ---------- */
 (function () {
-  var pick = Filter.picker('image');
-  document.getElementById('kf-controls').prepend(IP.el('label', {}, 'Image ', pick));
-  var kEl = document.getElementById('kf-k');
-  function mode() { return document.querySelector('input[name=kf-mode]:checked').value; }
+  var CAPTION = {
+    lap: 'cv2.Laplacian, absolute value: only the edges, on black',
+    sharp: 'gray − Laplacian: sharper',
+    k1: 'gray + 1 · (gray − blur), blur with σ = 5: unsharp masking',
+    k45: 'gray + 4.5 · (gray − blur), blur with σ = 5: highboost'
+  };
   function draw() {
-    if (!Filter.loaded()) return;
-    var m = mode(), gray = Filter.image(pick.value), f = Filter.fromGray(gray), k = Number(kEl.value), out, code, cap;
-    document.getElementById('kf-k-label').hidden = m !== 'unsharp';
-    document.getElementById('kf-k-val').textContent = k;
-    if (m === 'lap') {
-      out = Filter.toGray(Filter.laplacian(f), 'abs');
-      code = 'lap = cv2.Laplacian(gray, cv2.CV_32F)\nout = np.clip(np.abs(lap), 0, 255).astype(np.uint8)';
-      cap = 'Laplacian: only the edges, on black';
-    } else if (m === 'sharp') {
-      out = Filter.toGray(Filter.add(f, Filter.laplacian(f), -1));
-      code = 'lap = cv2.Laplacian(gray, cv2.CV_32F)\nout = np.clip(gray - lap, 0, 255).astype(np.uint8)';
-      cap = 'f − Laplacian: sharper';
-    } else {
+    var m = document.querySelector('input[name=kf-mode]:checked').value, gray = IP.gray(), f = Filter.fromGray(gray), out;
+    if (m === 'lap') out = Filter.toGray(Filter.laplacian(f), 'abs');
+    else if (m === 'sharp') out = Filter.toGray(Filter.add(f, Filter.laplacian(f), -1));
+    else {
       var blur = Filter.saturate(Filter.gaussian(f, 5, 'reflect'));     // cv2.GaussianBlur gives uint8
-      out = Filter.toGray(Filter.add(f, Filter.add(f, blur, -1), k));   // f + k * (f - blur)
-      code = 'blur = cv2.GaussianBlur(gray, (0, 0), 5)\nmask = gray.astype(np.float32) - blur\nout = np.clip(gray + ' + k + ' * mask, 0, 255).astype(np.uint8)';
-      cap = 'k = ' + k + (k > 1 ? ': highboost' : k === 1 ? ': unsharp masking' : '');
+      out = Filter.toGray(Filter.add(f, Filter.add(f, blur, -1), m === 'k1' ? 1 : 4.5));
     }
     IP.draw(document.getElementById('kf-src'), gray);
     IP.draw(document.getElementById('kf-dst'), out);
-    document.getElementById('kf-code').innerHTML = IP.highlight(code);
-    document.getElementById('kf-cap').textContent = cap;
+    document.getElementById('kf-cap').textContent = CAPTION[m];
   }
-  var redraw = Filter.onFrame(draw);
-  [pick, kEl].forEach(function (el) { el.addEventListener('input', redraw); });
-  document.querySelectorAll('input[name=kf-mode]').forEach(function (r) { r.addEventListener('input', redraw); });
-  Filter.ready(draw);
+  document.querySelectorAll('input[name=kf-mode]').forEach(function (r) { r.addEventListener('input', draw); });
+  IP.ready(draw);
   IP.onChange(draw);
 })();
 
