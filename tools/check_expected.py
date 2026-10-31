@@ -74,22 +74,15 @@ H = np.cumsum(hist)
 print(H[127], H[-1])
 
 print("== Section 6 ==")
-crop = gray[100:160, 100:180].astype(np.float32)
-kernel = np.ones((3, 3), np.float32) / 9
-out = np.zeros_like(crop)
-for r in range(1, crop.shape[0] - 1):
-    for c in range(1, crop.shape[1] - 1):
-        out[r, c] = (crop[r-1:r+2, c-1:c+2] * kernel).sum()
-ref = cv2.filter2D(crop, -1, kernel)
-print(round(float(out[30, 40]), 2))
-print(np.abs(out - ref)[1:-1, 1:-1].max() < 1e-3)
-shift = cv2.filter2D(gray, -1, np.array([[0, 0, 0], [0, 0, 1], [0, 0, 0]], np.float32))
-print(np.array_equal(shift[:, :-1], gray[:, 1:]))
+# the answers of the "What does it print?" game
 flat = np.full((5, 5), 100, np.uint8)
 zero = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_CONSTANT)
 refl = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_REFLECT)
-print(zero[0, 0], zero[0, 4], zero[4, 0], zero[4, 4], zero[0, 2])
-print(refl[0, 0], refl[0, 4], refl[4, 0], refl[4, 4], refl[0, 2])
+print(zero[0, 0], zero[0, 2], refl[0, 0])
+print(np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]]).sum())
+row = np.array([[0, 0, 0, 1, 0, 0, 0]], np.float32)
+print(cv2.filter2D(row, -1, np.array([[1, 2, 3]], np.float32), borderType=cv2.BORDER_CONSTANT))
+print(cv2.GaussianBlur(gray, (0, 0), 3).shape)   # (0, 0) is allowed
 
 print("== Section 7 ==")
 gx8 = cv2.Sobel(gray, cv2.CV_8U, 1, 0)

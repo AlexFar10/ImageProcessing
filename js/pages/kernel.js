@@ -90,115 +90,135 @@
   document.getElementById('d-gauss').innerHTML = D.svg(580, 306, gs, 'A box kernel has equal weights, a Gaussian is strongest in the centre');
 })();
 
-/* ---------- Demo A: kernel editor ---------- */
+/* ---------- Demo A: the kernel slides over a small image ---------- */
 (function () {
-  var table = document.getElementById('ka-kernel'), inputs = [];
-  var pick = Filter.picker('image');
-  document.getElementById('ka-controls').prepend(IP.el('label', {}, 'Image ', pick));
-  var border = document.getElementById('ka-border'), outMode = document.getElementById('ka-out'), divide = document.getElementById('ka-divide');
-  var clicked = null, result = null;
+  // A small image with an edge, a bright dot and a dark dot
+  var IMG = [
+    [10, 10, 10, 10, 10, 200, 200, 200, 200],
+    [10, 200, 10, 10, 10, 200, 200, 200, 200],
+    [10, 10, 10, 10, 10, 200, 200, 200, 200],
+    [10, 10, 10, 10, 10, 200, 200, 200, 200],
+    [10, 10, 10, 10, 10, 200, 200, 10, 200],
+    [10, 10, 10, 10, 10, 200, 200, 200, 200]
+  ];
+  var H = IMG.length, W = IMG[0].length;
+  var KERNELS = ['box', 'gaussian', 'sharpen', 'laplacian', 'sobelX', 'identity'];
+  var EFFECT = {
+    box: 'Blur: each pixel becomes the mean of its window. The dots fade, the edge gets softer.',
+    gaussian: 'Softer blur: the centre counts most (4/16), the corners least (1/16).',
+    sharpen: 'Sharpen: the centre ×5 minus its 4 neighbours. Flat areas stay, the edge and the dots get stronger.',
+    laplacian: 'Laplacian: 4 neighbours − 4 × centre. Flat areas give 0; only edges and dots light up.',
+    sobelX: 'Sobel dx: right column − left column. Only the dark-to-bright edge (left to right) survives; negatives are cut to 0.',
+    identity: 'Identity: only the centre counts, so nothing changes.'
+  };
+  var sel = document.getElementById('ks-kernel');
+  KERNELS.forEach(function (key) { sel.appendChild(IP.el('option', { value: key, text: Filter.PRESETS[key].name })); });
+  var inTable = document.getElementById('ks-in'), outTable = document.getElementById('ks-out');
+  var inCells = [], outCells = [], done = 0, timer = null;
 
-  for (var r = 0; r < 3; r++) {
-    var tr = IP.el('tr');
-    for (var c = 0; c < 3; c++) {
-      var input = IP.el('input', { type: 'text', inputmode: 'decimal', 'aria-label': 'coefficient row ' + r + ' column ' + c });
-      input.addEventListener('input', redraw);
-      inputs.push(input);
-      tr.appendChild(IP.el('td', {}, input));
-    }
-    table.appendChild(tr);
+  // the kernel actually used: coefficients divided by their sum for blurs
+  function kernel() {
+    var p = Filter.PRESETS[sel.value], flat = [].concat.apply([], p.rows);
+    var sum = flat.reduce(function (a, b) { return a + b; }, 0);
+    return { rows: p.rows, div: p.divide ? sum : 1 };
   }
-  // Numbers like 2, -1, 0.5 or 1/9
-  function parse(text) {
-    var m = String(text).trim().match(/^(-?\d*\.?\d+)(?:\/(\d*\.?\d+))?$/);
-    if (!m) return NaN;
-    return m[2] ? Number(m[1]) / Number(m[2]) : Number(m[1]);
-  }
-  function coefficients() {
-    var raw = inputs.map(function (i) { return parse(i.value); });
-    var sum = raw.reduce(function (a, b) { return a + b; }, 0);
-    var scale = divide.checked && sum !== 0 && !isNaN(sum) ? 1 / sum : 1;
-    inputs.forEach(function (i, k) { i.classList.toggle('blank-bad', isNaN(raw[k])); });
-    return { raw: raw, sum: sum, scale: scale, values: raw.map(function (v) { return v * scale; }) };
-  }
-
-  var presetBox = document.getElementById('ka-presets');
-  Object.keys(Filter.PRESETS).forEach(function (key) {
-    var p = Filter.PRESETS[key];
-    presetBox.appendChild(IP.el('button', { class: 'btn secondary', type: 'button', text: p.name, onclick: function () { setPreset(p); } }));
-  });
-  function setPreset(p) {
-    p.rows.forEach(function (row, r) { row.forEach(function (v, c) { inputs[r * 3 + c].value = v; }); });
-    divide.checked = !!p.divide;
-    redraw();
+  // pixel value with reflect-101 borders, like cv2.filter2D
+  function at(r, c) { return IMG[Filter.borderIndex(r, H, 'reflect')][Filter.borderIndex(c, W, 'reflect')]; }
+  function compute(r, c) {
+    var k = kernel(), sum = 0;
+    for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) sum += at(r + dr, c + dc) * k.rows[dr + 1][dc + 1];
+    return { sum: sum, value: Filter.store(sum / k.div, 'clip') };
   }
 
-  var BORDER_CV = { reflect: 'cv2.BORDER_REFLECT_101', replicate: 'cv2.BORDER_REPLICATE', zeros: 'cv2.BORDER_CONSTANT' };
-  function draw() {
-    if (!Filter.loaded()) return;
-    var k = coefficients();
-    if (k.values.some(isNaN)) return;
-    var gray = Filter.image(pick.value);
-    result = Filter.correlate(Filter.fromGray(gray), Filter.kernel([k.values.slice(0, 3), k.values.slice(3, 6), k.values.slice(6)]), border.value);
-    IP.draw(document.getElementById('ka-src'), gray);
-    IP.draw(document.getElementById('ka-dst'), Filter.toGray(result, outMode.value));
-    var rowsText = [0, 3, 6].map(function (i) { return '[' + k.raw.slice(i, i + 3).join(', ') + ']'; }).join(',\n                   ');
-    var code = 'kernel = np.array([' + rowsText + '], np.float32)';
-    if (k.scale !== 1) code += ' / ' + k.sum;
-    var mode = outMode.value === 'clip' ? '-1' : 'cv2.CV_32F';
-    code += '\nout = cv2.filter2D(gray, ' + mode + ', kernel, borderType=' + BORDER_CV[border.value] + ')';
-    if (outMode.value === 'abs') code += '\nout = np.clip(np.abs(out), 0, 255).astype(np.uint8)';
-    if (outMode.value === 'offset') code += '\nout = np.clip(out + 128, 0, 255).astype(np.uint8)';
-    document.getElementById('ka-code').innerHTML = IP.highlight(code);
-    if (clicked) explain(clicked, k, gray);
-  }
-  var redraw = Filter.onFrame(draw);
-
-  // The calculation for one pixel: window values, coefficients, products, sum, stored value
-  function explain(p, k, gray) {
-    var w = gray.width, h = gray.height, sum = 0, cells = [];
-    for (var dr = -1; dr <= 1; dr++) {
-      for (var dc = -1; dc <= 1; dc++) {
-        var rr = Filter.borderIndex(p.row + dr, h, border.value), cc = Filter.borderIndex(p.col + dc, w, border.value);
-        var v = rr < 0 || cc < 0 ? 0 : gray.data[rr * w + cc];
-        var coef = k.values[(dr + 1) * 3 + dc + 1];
-        sum += v * coef;
-        cells.push({ v: v, coef: coef, outside: rr < 0 || cc < 0 || rr !== p.row + dr || cc !== p.col + dc });
+  function build() {
+    inTable.innerHTML = ''; outTable.innerHTML = ''; inCells = []; outCells = [];
+    for (var r = -1; r <= H; r++) {
+      var tr = IP.el('tr'), row = [];
+      for (var c = -1; c <= W; c++) {
+        var v = at(r, c), pad = r < 0 || r >= H || c < 0 || c >= W;
+        var td = IP.el('td', { text: String(v), class: pad ? 'pad' : '', style: pad ? '' : 'background:' + Diagram.pixel(v) });
+        tr.appendChild(td); row.push(td);
       }
+      inTable.appendChild(tr); inCells.push(row);
     }
-    var box = document.getElementById('ka-calc');
-    box.innerHTML = '';
-    var t = IP.el('table', { class: 'calc-grid' });
-    for (var i = 0; i < 9; i += 3) {
+    for (r = 0; r < H; r++) {
+      tr = IP.el('tr'); row = [];
+      for (c = 0; c < W; c++) {
+        td = IP.el('td', { class: 'empty' });
+        td.dataset.i = r * W + c;
+        td.onclick = function () { stop(); show(Number(this.dataset.i) + 1); };
+        tr.appendChild(td); row.push(td);
+      }
+      outTable.appendChild(tr); outCells.push(row);
+    }
+    var k = kernel(), kt = document.getElementById('ks-k');
+    kt.innerHTML = '';
+    k.rows.forEach(function (row) {
       var tr = IP.el('tr');
-      cells.slice(i, i + 3).forEach(function (cell) {
-        tr.appendChild(IP.el('td', { class: cell.outside ? 'outside' : '' },
-          IP.el('span', { text: String(cell.v) }), ' × ', IP.el('span', { class: 'coef', text: round3(cell.coef) }),
-          IP.el('br'), '= ' + round3(cell.v * cell.coef)));
-      });
-      t.appendChild(tr);
-    }
-    var stored = Filter.store(result.data[p.row * w + p.col], outMode.value);
-    box.append(IP.el('b', { text: 'row ' + p.row + ', column ' + p.col }), t,
-      IP.el('div', { text: 'sum = ' + round3(sum) + '  →  stored ' + stored +
-        (outMode.value === 'clip' ? '  (rounded, cut to 0…255)' : outMode.value === 'abs' ? '  (|sum|, rounded, cut)' : '  (sum + 128, rounded, cut)') }));
-    [document.getElementById('ka-src'), document.getElementById('ka-dst')].forEach(function (cv) {
-      var ctx = cv.getContext('2d');
-      ctx.strokeStyle = '#d64545';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(p.col - 1.5, p.row - 1.5, 4, 4);
+      row.forEach(function (v) { tr.appendChild(IP.el('td', { text: String(v) })); });
+      kt.appendChild(tr);
     });
+    document.getElementById('ks-k-cap').textContent = 'kernel' + (k.div !== 1 ? ', then ÷ ' + k.div : '');
   }
-  function round3(x) { return String(Math.round(x * 1000) / 1000); }
 
-  ['ka-src', 'ka-dst'].forEach(function (id) {
-    var cv = document.getElementById(id);
-    cv.addEventListener('click', function (e) { clicked = IP.pixelAt(cv, e); draw(); });
-  });
-  [border, outMode, divide, pick].forEach(function (el) { el.addEventListener('input', function () { if (el === pick) clicked = null; redraw(); }); });
-  setPreset(Filter.PRESETS.box);
-  Filter.ready(draw);
-  IP.onChange(function () { clicked = null; draw(); });
+  // Show the first n output pixels; the last one is the current one
+  function show(n) {
+    done = Math.max(0, Math.min(n, H * W));
+    inCells.forEach(function (row) { row.forEach(function (td) { td.classList.remove('win', 'center'); }); });
+    for (var i = 0; i < H * W; i++) {
+      var r = Math.floor(i / W), c = i % W, td = outCells[r][c];
+      td.classList.remove('current');
+      if (i < done) {
+        var v = compute(r, c).value;
+        td.textContent = v; td.className = ''; td.style.background = Diagram.pixel(v);
+      } else { td.textContent = ''; td.className = 'empty'; td.style.background = ''; }
+    }
+    var calc = document.getElementById('ks-calc');
+    if (!done) { calc.textContent = 'Press "Next pixel": the window (black frame) moves left to right, top to bottom.'; return; }
+    var cur = done - 1, cr = Math.floor(cur / W), cc = cur % W, k = kernel(), res = compute(cr, cc);
+    outCells[cr][cc].classList.add('current');
+    for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) inCells[cr + dr + 1][cc + dc + 1].classList.add('win');
+    inCells[cr + 1][cc + 1].classList.add('center');
+    var terms = [];
+    for (dr = -1; dr <= 1; dr++) for (dc = -1; dc <= 1; dc++) {
+      var w = k.rows[dr + 1][dc + 1];
+      if (w !== 0) terms.push(at(cr + dr, cc + dc) + '·' + w);
+    }
+    calc.innerHTML = '';
+    calc.append(IP.el('b', { text: 'row ' + cr + ', column ' + cc + ': ' }),
+      terms.join(' + ').replace(/\+ -/g, '− ').replace(/·-/g, '·−') + ' = ' + res.sum +
+      (k.div !== 1 ? ' → ÷ ' + k.div + ' = ' + Math.round(res.sum / k.div * 10) / 10 : '') +
+      ' → stored ' + res.value + (res.sum / k.div < 0 || res.sum / k.div > 255 ? ' (cut to 0…255)' : ''),
+      IP.el('p', { class: 'caption', style: 'text-align:left;margin-bottom:0', text: EFFECT[sel.value] }));
+  }
+
+  function stop() { clearInterval(timer); timer = null; document.getElementById('ks-play').textContent = 'Play'; }
+  document.getElementById('ks-step').onclick = function () { stop(); show(done + 1); };
+  document.getElementById('ks-all').onclick = function () { stop(); show(H * W); };
+  document.getElementById('ks-reset').onclick = function () { stop(); show(0); };
+  document.getElementById('ks-play').onclick = function () {
+    if (timer) { stop(); return; }
+    if (done >= H * W) show(0);
+    this.textContent = 'Pause';
+    timer = setInterval(function () { if (done >= H * W) stop(); else show(done + 1); }, 400);
+  };
+
+  // The same kernel on a whole image
+  var pick = Filter.picker('image');
+  document.getElementById('ks-img-controls').append(IP.el('label', {}, 'Image ', pick));
+  function drawImage() {
+    if (!Filter.loaded()) return;
+    var k = kernel(), gray = Filter.image(pick.value);
+    var rows = k.rows.map(function (row) { return row.map(function (v) { return v / k.div; }); });
+    IP.draw(document.getElementById('ks-src'), gray);
+    IP.draw(document.getElementById('ks-dst'), Filter.toGray(Filter.correlate(Filter.fromGray(gray), Filter.kernel(rows), 'reflect')));
+    document.getElementById('ks-dst-cap').textContent = 'cv2.filter2D(gray, -1, kernel): ' + Filter.PRESETS[sel.value].name;
+  }
+  sel.addEventListener('input', function () { stop(); build(); show(0); drawImage(); });
+  pick.addEventListener('input', drawImage);
+  build(); show(0);
+  Filter.ready(drawImage);
+  IP.onChange(drawImage);
 })();
 
 /* ---------- Demo B: borders ---------- */
@@ -249,11 +269,10 @@
     document.getElementById('kc-box-cap').textContent = 'cv2.blur(img, (' + k + ', ' + k + '))';
     document.getElementById('kc-gauss-cap').textContent = 'cv2.GaussianBlur(img, (0, 0), ' + sigma + ')';
     var g1 = Filter.gaussian1D(gsize, sigma);
-    var max = Math.max(1 / (k * k), g1[(gsize - 1) / 2] * g1[(gsize - 1) / 2]);   // same scale for both maps
-    Filter.drawKernel(document.getElementById('kc-boxmap'), Filter.outer(Filter.box1D(k), Filter.box1D(k)), max);
-    Filter.drawKernel(document.getElementById('kc-gaussmap'), Filter.outer(g1, g1), max);
-    document.getElementById('kc-boxmap-cap').textContent = 'box kernel ' + k + ' × ' + k;
-    document.getElementById('kc-gaussmap-cap').textContent = 'Gaussian kernel ' + gsize + ' × ' + gsize + ' (same color scale)';
+    Filter.drawKernel(document.getElementById('kc-boxmap'), Filter.outer(Filter.box1D(k), Filter.box1D(k)));
+    Filter.drawKernel(document.getElementById('kc-gaussmap'), Filter.outer(g1, g1));
+    document.getElementById('kc-boxmap-cap').textContent = 'box kernel ' + k + ' × ' + k + ': all weights equal';
+    document.getElementById('kc-gaussmap-cap').textContent = 'Gaussian kernel ' + gsize + ' × ' + gsize + ': strongest in the centre';
   }
   var redraw = Filter.onFrame(draw);
   [boxEl, sigmaEl, pick].forEach(function (el) { el.addEventListener('input', redraw); });
@@ -261,20 +280,109 @@
   IP.onChange(draw);
 })();
 
-/* ---------- Exercises: expected values ---------- */
-// Python prints floats with a decimal point: 122.0, not 122
-function pyFloat(text) { return text.indexOf('.') < 0 ? text + '.0' : text; }
-IP.expected('expected-by-hand', function (img) {
-  var gray = IP.grayOf(img), w = gray.width;
-  if (gray.height < 160 || w < 180) return [['<code>print(round(float(out[30, 40]), 2))</code>', 'image too small'], ['…', '']];
-  var sum = 0;   // out[30, 40] is the mean around crop[30, 40] = gray[130, 140]
-  for (var r = 129; r <= 131; r++) for (var c = 139; c <= 141; c++) sum += gray.data[r * w + c];
-  return [
-    ['<code>print(round(float(out[30, 40]), 2))</code>', pyFloat(IP.fmt.round2(sum / 9))],
-    ['<code>print(np.abs(out - ref)[1:-1, 1:-1].max() &lt; 1e-3)</code>', 'True'],
-    ['<code>print(f"loops … filter2D …")</code>', 'depends on your computer']
-  ];
+/* ---------- Code: fill in the blanks ---------- */
+Games.fillBlanks(document.getElementById('game-fill-blur'), {
+  title: 'Blur with OpenCV',
+  task: '',
+  parts: [
+    'kernel = np.ones((3, 3), np.float32) / ', { answer: '9', options: ['1', '3', '9'], hint: '9 coefficients that must add up to 1: each one is 1/9.' },
+    '\nbox = cv2.', { answer: 'filter2D', options: ['cvtColor', 'filter2D', 'threshold'], hint: 'filter2D slides any kernel over the image.' },
+    '(gray, -1, kernel)\n\n# zeros around the image\nzero = cv2.blur(gray, (3, 3), borderType=cv2.',
+    { answer: 'BORDER_CONSTANT', options: ['BORDER_CONSTANT', 'BORDER_REFLECT_101', 'BORDER_REPLICATE'], hint: 'CONSTANT fills the border with a constant value, 0 by default.' },
+    ')\n\n# Gaussian with sigma = 3, OpenCV picks the size\ngauss = cv2.GaussianBlur(gray, ', { answer: '(0, 0)', options: ['(0, 0)', '(3, 3)', '(4, 4)'], hint: '(0, 0) means: compute the size from sigma. (4, 4) is not allowed: sizes must be odd.' },
+    ', 3)'
+  ],
+  explain: 'Divide by 9 so the coefficients add up to 1, filter2D applies the kernel, BORDER_CONSTANT pads with zeros, (0, 0) lets OpenCV pick the size (here 19 × 19).',
+  onCorrect: function (out) {
+    var f = Filter.fromGray(IP.gray());
+    out.append(IP.el('div', { class: 'grid-3' },
+      IP.figure(Filter.toGray(Filter.box(f, 3, 'reflect')), 'box'),
+      IP.figure(Filter.toGray(Filter.box(f, 3, 'zeros')), 'zero (look at the border)'),
+      IP.figure(Filter.toGray(Filter.gaussian(f, 3, 'reflect')), 'gauss')));
+  }
 });
-IP.expected('expected-guess', function () {
-  return [['<code>print(np.array_equal(out["shift"][:, :-1], gray[:, 1:]))</code>', 'True']];
+
+/* ---------- Code: what does it print? ---------- */
+var FLAT = 'flat = np.full((5, 5), 100, np.uint8)\n';
+Games.predict(document.getElementById('game-print'), {
+  title: 'What does it print?',
+  task: '',
+  rounds: function () {
+    return Games.shuffle([
+      Games.pickRound({ code: FLAT + 'out = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_CONSTANT)\nprint(out[0, 0])',
+        explain: 'The corner window holds 4 pixels of 100 and 5 zeros: 400 / 9 = 44.4 → 44.' }, ['44', '67', '100', '0']),
+      Games.pickRound({ code: FLAT + 'out = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_CONSTANT)\nprint(out[0, 2])',
+        explain: 'An edge pixel (not a corner): 6 pixels of 100 and 3 zeros: 600 / 9 = 66.7 → 67.' }, ['67', '44', '100', '33']),
+      Games.pickRound({ code: FLAT + 'out = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_REFLECT)\nprint(out[0, 0])',
+        explain: 'Reflecting copies pixels of 100 outside the image, so every window is all 100.' }, ['100', '44', '67', '0']),
+      Games.pickRound({ code: 'import math\nsigma = 2\nprint(2 * math.ceil(3 * sigma) + 1)',
+        explain: '3σ = 6 on each side, plus the centre: 6 + 6 + 1 = 13.' }, ['13', '7', '6', '12']),
+      Games.pickRound({ code: 'k = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])\nprint(k.sum())',
+        explain: '5 − 4 = 1: the sharpen kernel keeps the brightness of flat areas.' }, ['1', '5', '0', '9']),
+      Games.pickRound({ code: 'row = np.array([[0, 0, 0, 1, 0, 0, 0]], np.float32)\nw = np.array([[1, 2, 3]], np.float32)\nprint(cv2.filter2D(row, -1, w, borderType=cv2.BORDER_CONSTANT))',
+        explain: 'filter2D is correlation: on a single 1 it writes the kernel backwards.' },
+        ['[[0. 0. 3. 2. 1. 0. 0.]]', '[[0. 0. 1. 2. 3. 0. 0.]]', '[[0. 0. 0. 1. 0. 0. 0.]]'])
+    ]);
+  }
+});
+
+/* ---------- Code: which kernel made this picture? ---------- */
+Games.predict(document.getElementById('game-which-kernel'), {
+  title: 'Which kernel?',
+  task: '',
+  rounds: function () {
+    var f = Filter.fromGray(IP.gray());
+    function apply(key, size) {
+      if (size) return Filter.toGray(Filter.box(f, size, 'reflect'));
+      return Filter.toGray(Filter.correlate(f, Filter.kernel(Filter.PRESETS[key].rows), 'reflect'));
+    }
+    var list = [
+      ['box 7 × 7 (blur)', function () { return apply('box', 7); }, 'Everything is soft, no sharp borders: a blur.'],
+      ['sharpen [0 −1 0; −1 5 −1; 0 −1 0]', function () { return apply('sharpen'); }, 'Same picture, but the edges and the grass texture are crisper.'],
+      ['Laplacian [0 1 0; 1 −4 1; 0 1 0]', function () { return apply('laplacian'); }, 'Almost black, with thin lines on edges in every direction: the kernel sums to 0.'],
+      ['Sobel dx [−1 0 1; −2 0 2; −1 0 1]', function () { return apply('sobelX'); }, 'Only vertical edges (fence posts, house walls) light up, and only one side of each.']
+    ];
+    return Games.shuffle(list).map(function (item) {
+      return Games.pickRound({
+        question: 'Which kernel made this picture?',
+        figure: function () { return IP.el('div', { style: 'max-width:360px' }, IP.canvasOf(item[1]())); },
+        explain: item[2]
+      }, [item[0]].concat(list.filter(function (o) { return o !== item; }).map(function (o) { return o[0]; })));
+    });
+  }
+});
+
+/* ---------- Code: spot the bug ---------- */
+Games.spotBug(document.getElementById('game-bug-bright'), {
+  title: 'Too bright',
+  task: 'This blur makes the image much brighter. Click the wrong line.',
+  lines: [
+    'gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)',
+    'kernel = np.ones((5, 5), np.float32) / 9',
+    'blur = cv2.filter2D(gray, -1, kernel)',
+    'cv2.imwrite("blur.png", blur)'
+  ],
+  bug: 1,
+  hints: { 0: 'Converting to gray first is fine.', 2: 'filter2D with -1 keeps uint8: fine.', 3: 'Saving is fine.' },
+  explain: 'A 5 × 5 kernel has 25 coefficients. Divided by 9 they add up to 25/9 ≈ 2.8, so the image gets almost 3× brighter. Use / 25.',
+  show: function (out) {
+    var f = Filter.fromGray(IP.gray()), ones = Filter.box1D(5).map(function () { return 1 / 9 * 5; });
+    out.append(IP.el('div', { class: 'grid-2' },
+      IP.figure(Filter.toGray(Filter.separable(f, ones, Filter.box1D(5), 'reflect')), 'bug: / 9'),
+      IP.figure(Filter.toGray(Filter.box(f, 5, 'reflect')), 'fixed: / 25')));
+  }
+});
+Games.spotBug(document.getElementById('game-bug-even'), {
+  title: 'An error message',
+  task: 'Python stops with an error. Click the wrong line.',
+  lines: [
+    'gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)',
+    'sigma = 2',
+    'blur = cv2.GaussianBlur(gray, (6, 6), sigma)',
+    'cv2.imwrite("blur.png", blur)'
+  ],
+  bug: 2,
+  hints: { 0: 'Converting to gray first is fine.', 1: 'Any positive sigma is fine.', 3: 'Saving is fine.' },
+  explain: 'Kernel sizes must be odd (3, 5, 7, …) so the kernel has a centre pixel. Use (13, 13) for sigma = 2, or (0, 0) to let OpenCV choose.',
+  show: function (out) { out.append(IP.el('p', { class: 'caption', style: 'text-align:left', text: 'cv2.error: … ksize.width > 0 && ksize.width % 2 == 1 …' })); }
 });

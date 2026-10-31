@@ -282,3 +282,14 @@ canvas.clickable { cursor: crosshair; }
 .num-grid { border-collapse: collapse; margin: 0 auto; font: .8rem var(--mono); }
 .num-grid td { width: 2.6em; height: 2.2em; text-align: center; border: 1px solid #fff; }
 .kernel-maps canvas { max-width: 180px; margin: 0 auto; }
+.slide-demo { display: flex; flex-wrap: wrap; gap: 1rem 1.6rem; align-items: flex-start; margin: .6rem 0 1rem; }
+.slide-demo .figure { margin: 0; }
+.table-scroll { overflow-x: auto; max-width: 100%; }
+.num-grid.slide td { width: 2.4em; height: 2em; font-size: .78rem; }
+.num-grid td.pad { background: #e7e5df; color: var(--muted); font-style: italic; }
+.num-grid td.empty { background: var(--bg); cursor: pointer; }
+.num-grid td.win { box-shadow: inset 0 0 0 1px #000; }
+.num-grid td.center { box-shadow: inset 0 0 0 2.5px #000; font-weight: 700; }
+.num-grid td.current { box-shadow: inset 0 0 0 2.5px #3B6D11; font-weight: 700; }
+#ks-out td { cursor: pointer; }
+.num-grid.kernel td { background: #AFA9EC; border: 1.5px solid #534AB7; width: 2.4em; height: 2em; }
