@@ -166,7 +166,7 @@ var extraReady = [];
     return IP.decode(names[name]).then(function (bmp) {
       Filter.extra[name] = IP.toGray(IP.readPixels(bmp, bmp.width, bmp.height));
     });
-  })).then(function () { extraReady.forEach(function (fn) { fn(); }); extraReady = null; });
+  })).then(function () { var waiting = extraReady; extraReady = null; waiting.forEach(function (fn) { fn(); }); });
 })();
 
 // Run fn when the test image AND the two extra images are ready

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Edges and sharpening · Image Processing Lab</title>
-  <link rel="stylesheet" href="css/style.css?v=20261104">
+  <link rel="stylesheet" href="css/style.css?v=20261106">
 </head>
 <body data-page="edges">
 <main>
@@ -45,22 +45,12 @@
 
   <!-- ============ Demo ============ -->
   <section class="part" id="demo" data-title="Demo">
-    <h2 style="margin-top:0">Derivatives of one row</h2>
-    <div class="controls">
-      <label>Edge at <input type="range" id="kd-pos" min="3" max="17" value="10"> <b id="kd-pos-val">10</b></label>
-      <label><input type="radio" name="kd-shape" value="step" checked> step</label>
-      <label><input type="radio" name="kd-shape" value="ramp"> ramp</label>
-    </div>
-    <canvas id="kd-plot" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px"></canvas>
-    <p class="caption" id="kd-note"></p>
-
-    <h2>Sobel</h2>
+    <h2 style="margin-top:0">Sobel</h2>
     <div class="controls" id="ke-controls">
       <label><input type="radio" name="ke-what" value="dx" checked> dx</label>
       <label><input type="radio" name="ke-what" value="dy"> dy</label>
       <label><input type="radio" name="ke-what" value="mag"> magnitude</label>
-      <label><input type="checkbox" id="ke-8bit"> 8-bit output (CV_8U)</label>
-      <label>Threshold <input type="range" id="ke-t" min="0" max="255" value="0"> <b id="ke-t-val">off</b></label>
+      <label><input type="checkbox" id="ke-8bit"> 8-bit (CV_8U)</label>
     </div>
     <div class="code"><pre id="ke-code"></pre></div>
     <div class="grid-2">
@@ -70,20 +60,14 @@
 
     <h2>Laplacian and sharpening</h2>
     <div class="controls" id="kf-controls">
-      <label><input type="radio" name="kf-mode" value="lap" checked> Laplacian only</label>
-      <label><input type="radio" name="kf-mode" value="sharp"> f + c · Laplacian</label>
+      <label><input type="radio" name="kf-mode" value="lap" checked> Laplacian</label>
+      <label><input type="radio" name="kf-mode" value="sharp"> f − Laplacian</label>
       <label><input type="radio" name="kf-mode" value="unsharp"> unsharp masking</label>
-      <label><input type="checkbox" id="kf-8bit"> 8-bit in between (CV_8U)</label>
-    </div>
-    <div class="controls">
-      <label data-for="sharp">c <input type="range" id="kf-c" min="-2" max="2" step="0.1" value="-1"> <b id="kf-c-val">-1</b></label>
-      <label data-for="unsharp">σ <input type="range" id="kf-sigma" min="0.5" max="10" step="0.5" value="5"> <b id="kf-sigma-val">5</b></label>
-      <label data-for="unsharp">k <input type="range" id="kf-k" min="0" max="5" step="0.1" value="1"> <b id="kf-k-val">1</b> <span class="caption">(4.5 = lecture example)</span></label>
+      <label id="kf-k-label">k <input type="range" id="kf-k" min="0" max="5" step="0.5" value="1"> <b id="kf-k-val">1</b></label>
     </div>
     <div class="code"><pre id="kf-code"></pre></div>
-    <div class="grid-3">
+    <div class="grid-2">
       <figure class="figure"><canvas id="kf-src"></canvas><figcaption>f</figcaption></figure>
-      <figure class="figure" id="kf-detail-fig"><canvas id="kf-detail"></canvas><figcaption id="kf-detail-cap"></figcaption></figure>
       <figure class="figure"><canvas id="kf-dst"></canvas><figcaption id="kf-cap"></figcaption></figure>
     </div>
   </section>
@@ -98,13 +82,13 @@
     <div id="game-bug-sign"></div>
   </section>
 </main>
-<script src="js/test-image.js?v=20261104"></script>
-<script src="js/filter-images.js?v=20261104"></script>
-<script src="js/glossary-data.js?v=20261104"></script>
-<script src="js/core.js?v=20261104"></script>
-<script src="js/games.js?v=20261104"></script>
-<script src="js/filter.js?v=20261104"></script>
-<script src="js/diagram.js?v=20261104"></script>
-<script src="js/pages/edges.js?v=20261104"></script>
+<script src="js/test-image.js?v=20261106"></script>
+<script src="js/filter-images.js?v=20261106"></script>
+<script src="js/glossary-data.js?v=20261106"></script>
+<script src="js/core.js?v=20261106"></script>
+<script src="js/games.js?v=20261106"></script>
+<script src="js/filter.js?v=20261106"></script>
+<script src="js/diagram.js?v=20261106"></script>
+<script src="js/pages/edges.js?v=20261106"></script>
 </body>
 </html>

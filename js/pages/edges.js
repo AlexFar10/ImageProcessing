@@ -42,137 +42,68 @@
   document.getElementById('d-lap').innerHTML = D.svg(470, 252, l, 'Sharpening a step: 10 10 10 200 200 200 becomes 10 0 255 200 around the edge');
 })();
 
-/* ---------- Demo D: derivatives of one row ---------- */
-(function () {
-  var pos = document.getElementById('kd-pos'), canvas = document.getElementById('kd-plot'), N = 24;
-  function shape() { return document.querySelector('input[name=kd-shape]:checked').value; }
-  function row() {
-    var e = Number(pos.value), f = [];
-    for (var x = 0; x < N; x++) {
-      if (shape() === 'step') f.push(x < e ? 10 : 200);
-      else f.push(x < e ? 10 : x >= e + 4 ? 200 : 10 + 38 * (x - e + 1));   // a ramp of 5 steps of 38
-    }
-    return f;
-  }
-  // One panel: bars from a zero line. signed: the zero line is in the middle
-  function panel(ctx, top, height, values, start, title, signed, color) {
-    var W = canvas.width, left = 190, cw = (W - left - 10) / N, zero = signed ? top + height / 2 : top + height;
-    ctx.fillStyle = '#000';
-    ctx.font = '17px system-ui, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(title, left - 10, top + height / 2 + 4);
-    ctx.strokeStyle = '#9ca3af';
-    ctx.beginPath(); ctx.moveTo(left, zero + 0.5); ctx.lineTo(W - 10, zero + 0.5); ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.font = '13px system-ui, sans-serif';
-    values.forEach(function (v, i) {
-      var x = left + (start + i) * cw, scale = (signed ? height / 2 - 12 : height - 14) / 200;
-      var hgt = v * scale;
-      ctx.fillStyle = color;
-      ctx.fillRect(x + 2, hgt >= 0 ? zero - hgt : zero, cw - 4, Math.abs(hgt));
-      if (v !== 0) { ctx.fillStyle = '#000'; ctx.fillText(String(v), x + cw / 2, hgt >= 0 ? zero - hgt - 3 : zero - hgt + 11); }
-    });
-  }
-  function draw() {
-    var f = row(), d1 = [], d2 = [];
-    for (var x = 0; x < N - 1; x++) d1.push(f[x + 1] - f[x]);
-    for (x = 1; x < N - 1; x++) d2.push(f[x + 1] + f[x - 1] - 2 * f[x]);
-    document.getElementById('kd-pos-val').textContent = pos.value;
-    canvas.width = 760; canvas.height = 420;
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    panel(ctx, 10, 120, f, 0, 'f(x)', false, Diagram.C.dark);
-    panel(ctx, 140, 130, d1, 0, 'first derivative', true, Diagram.C.green);
-    panel(ctx, 280, 130, d2, 1, 'second derivative', true, Diagram.C.green);
-    document.getElementById('kd-note').textContent = shape() === 'step'
-      ? 'Step: the first derivative is one spike; the second gives + then − (a zero crossing at the edge).'
-      : 'Ramp: the first derivative is non-zero along the whole ramp; the second only at its start and end.';
-  }
-  pos.addEventListener('input', draw);
-  document.querySelectorAll('input[name=kd-shape]').forEach(function (r) { r.addEventListener('input', draw); });
-  draw();
-})();
-
-/* ---------- Demo E: Sobel ---------- */
+/* ---------- Demo: Sobel ---------- */
 (function () {
   var pick = Filter.picker('edges');
   document.getElementById('ke-controls').prepend(IP.el('label', {}, 'Image ', pick));
-  var bit8 = document.getElementById('ke-8bit'), tEl = document.getElementById('ke-t');
+  var bit8 = document.getElementById('ke-8bit');
   function what() { return document.querySelector('input[name=ke-what]:checked').value; }
   function draw() {
     if (!Filter.loaded()) return;
-    var gray = Filter.image(pick.value), f = Filter.fromGray(gray), w = what(), T = Number(tEl.value);
+    var gray = Filter.image(pick.value), f = Filter.fromGray(gray), w = what();
     var dx = Filter.sobelX(f), dy = Filter.sobelY(f);
-    if (bit8.checked) { dx = Filter.saturate(dx); dy = Filter.saturate(dy); }   // CV_8U: negatives are lost
-    var shown;
-    if (w === 'mag') {
-      shown = Filter.make(gray.width, gray.height);
-      for (var i = 0; i < shown.data.length; i++) shown.data[i] = Math.sqrt(dx.data[i] * dx.data[i] + dy.data[i] * dy.data[i]);
-    } else shown = w === 'dx' ? dx : dy;
-    var out = Filter.toGray(shown, 'abs');
-    if (w === 'mag' && T > 0) out = IP.threshold(out, T);
-    var nonzero = 0;
-    for (i = 0; i < out.data.length; i++) if (out.data[i]) nonzero++;
-    document.getElementById('ke-t-val').textContent = T > 0 ? T : 'off';
-    tEl.closest('label').hidden = w !== 'mag';
+    if (bit8.checked) { dx = Filter.saturate(dx); dy = Filter.saturate(dy); }   // CV_8U: negatives become 0
+    var shown = w === 'dx' ? dx : w === 'dy' ? dy : Filter.make(f.width, f.height);
+    if (w === 'mag') for (var i = 0; i < shown.data.length; i++) shown.data[i] = Math.hypot(dx.data[i], dy.data[i]);
     IP.draw(document.getElementById('ke-src'), gray);
-    IP.draw(document.getElementById('ke-dst'), out);
-    document.getElementById('ke-cap').textContent = (w === 'mag' ? 'magnitude' : w) + ' · ' + Math.round(100 * nonzero / out.data.length) + '% of pixels not black';
+    IP.draw(document.getElementById('ke-dst'), Filter.toGray(shown, 'abs'));
     var depth = bit8.checked ? 'cv2.CV_8U' : 'cv2.CV_32F';
-    var code = 'gx = cv2.Sobel(gray, ' + depth + ', 1, 0)\ngy = cv2.Sobel(gray, ' + depth + ', 0, 1)';
-    if (w === 'mag') code += '\nmag = cv2.magnitude(gx.astype(np.float32), gy.astype(np.float32))' + (T > 0 ? '\nT, edges = cv2.threshold(np.clip(mag, 0, 255).astype(np.uint8), ' + T + ', 255, cv2.THRESH_BINARY)' : '');
-    else if (!bit8.checked) code += '\nshown = np.clip(np.abs(' + (w === 'dx' ? 'gx' : 'gy') + '), 0, 255).astype(np.uint8)';
+    var code = w === 'dx' ? 'out = cv2.Sobel(gray, ' + depth + ', 1, 0)' : w === 'dy' ? 'out = cv2.Sobel(gray, ' + depth + ', 0, 1)'
+      : 'gx = cv2.Sobel(gray, ' + depth + ', 1, 0)\ngy = cv2.Sobel(gray, ' + depth + ', 0, 1)\nout = cv2.magnitude(gx.astype(np.float32), gy.astype(np.float32))';
     document.getElementById('ke-code').innerHTML = IP.highlight(code);
+    document.getElementById('ke-cap').textContent = (w === 'dx' ? 'dx: vertical edges' : w === 'dy' ? 'dy: horizontal edges' : 'magnitude: all edges') +
+      (bit8.checked ? ' (8-bit: only dark → bright survives)' : ' (absolute value)');
   }
   var redraw = Filter.onFrame(draw);
-  [pick, bit8, tEl].forEach(function (el) { el.addEventListener('input', redraw); });
+  pick.addEventListener('input', redraw);
+  bit8.addEventListener('input', redraw);
   document.querySelectorAll('input[name=ke-what]').forEach(function (r) { r.addEventListener('input', redraw); });
   Filter.ready(draw);
   IP.onChange(draw);
 })();
 
-/* ---------- Demo F: Laplacian and sharpening ---------- */
+/* ---------- Demo: Laplacian and sharpening ---------- */
 (function () {
   var pick = Filter.picker('image');
   document.getElementById('kf-controls').prepend(IP.el('label', {}, 'Image ', pick));
-  var bit8 = document.getElementById('kf-8bit'), cEl = document.getElementById('kf-c'), sEl = document.getElementById('kf-sigma'), kEl = document.getElementById('kf-k');
+  var kEl = document.getElementById('kf-k');
   function mode() { return document.querySelector('input[name=kf-mode]:checked').value; }
   function draw() {
     if (!Filter.loaded()) return;
-    var m = mode(), gray = Filter.image(pick.value), f = Filter.fromGray(gray);
-    var c = Number(cEl.value), sigma = Number(sEl.value), k = Number(kEl.value), detail, result, code;
-    document.getElementById('kf-c-val').textContent = c;
-    document.getElementById('kf-sigma-val').textContent = sigma;
+    var m = mode(), gray = Filter.image(pick.value), f = Filter.fromGray(gray), k = Number(kEl.value), out, code, cap;
+    document.getElementById('kf-k-label').hidden = m !== 'unsharp';
     document.getElementById('kf-k-val').textContent = k;
-    document.querySelectorAll('#demo label[data-for]').forEach(function (l) { l.hidden = l.dataset.for !== m; });
-    var depth = bit8.checked ? 'cv2.CV_8U' : 'cv2.CV_32F';
-    if (m === 'unsharp') {
-      var blur = Filter.saturate(Filter.gaussian(f, sigma, 'reflect'));          // cv2.GaussianBlur gives uint8
-      detail = Filter.add(f, blur, -1);                                          // mask = f - blur
-      if (bit8.checked) detail = Filter.saturate(detail);                        // cv2.subtract: negatives become 0
-      result = Filter.add(f, detail, k);
-      code = 'blur = cv2.GaussianBlur(gray, (0, 0), ' + sigma + ')\n' +
-        (bit8.checked ? 'mask = cv2.subtract(gray, blur)          # 8-bit: negatives become 0' : 'mask = gray.astype(np.float32) - blur') +
-        '\ng = np.clip(gray + ' + k + ' * mask, 0, 255).astype(np.uint8)';
+    if (m === 'lap') {
+      out = Filter.toGray(Filter.laplacian(f), 'abs');
+      code = 'lap = cv2.Laplacian(gray, cv2.CV_32F)\nout = np.clip(np.abs(lap), 0, 255).astype(np.uint8)';
+      cap = 'Laplacian: only the edges, on black';
+    } else if (m === 'sharp') {
+      out = Filter.toGray(Filter.add(f, Filter.laplacian(f), -1));
+      code = 'lap = cv2.Laplacian(gray, cv2.CV_32F)\nout = np.clip(gray - lap, 0, 255).astype(np.uint8)';
+      cap = 'f − Laplacian: sharper';
     } else {
-      detail = Filter.laplacian(f);
-      if (bit8.checked) detail = Filter.saturate(detail);
-      result = m === 'lap' ? detail : Filter.add(f, detail, c);
-      code = 'lap = cv2.Laplacian(gray, ' + depth + ')' +
-        (m === 'lap' ? (bit8.checked ? '' : '\nshown = np.clip(np.abs(lap), 0, 255).astype(np.uint8)')
-          : '\ng = np.clip(gray + (' + c + ') * lap.astype(np.float32), 0, 255).astype(np.uint8)');
+      var blur = Filter.saturate(Filter.gaussian(f, 5, 'reflect'));     // cv2.GaussianBlur gives uint8
+      out = Filter.toGray(Filter.add(f, Filter.add(f, blur, -1), k));   // f + k * (f - blur)
+      code = 'blur = cv2.GaussianBlur(gray, (0, 0), 5)\nmask = gray.astype(np.float32) - blur\nout = np.clip(gray + ' + k + ' * mask, 0, 255).astype(np.uint8)';
+      cap = 'k = ' + k + (k > 1 ? ': highboost' : k === 1 ? ': unsharp masking' : '');
     }
     IP.draw(document.getElementById('kf-src'), gray);
-    document.getElementById('kf-detail-fig').hidden = m === 'lap';
-    IP.draw(document.getElementById('kf-detail'), Filter.toGray(detail, bit8.checked ? 'clip' : 'offset'));
-    document.getElementById('kf-detail-cap').textContent = (m === 'unsharp' ? 'mask' : 'Laplacian') + (bit8.checked ? ' (8-bit)' : ' (+128, gray = 0)');
-    IP.draw(document.getElementById('kf-dst'), Filter.toGray(result, m === 'lap' ? 'abs' : 'clip'));
-    document.getElementById('kf-cap').textContent = m === 'lap' ? 'Laplacian' + (bit8.checked ? ' (8-bit)' : ' (absolute value)')
-      : m === 'sharp' ? 'f + (' + c + ') · Laplacian' : 'f + ' + k + ' · mask' + (k > 1 ? ' (highboost)' : k === 1 ? ' (unsharp masking)' : '');
+    IP.draw(document.getElementById('kf-dst'), out);
     document.getElementById('kf-code').innerHTML = IP.highlight(code);
+    document.getElementById('kf-cap').textContent = cap;
   }
   var redraw = Filter.onFrame(draw);
-  [pick, bit8, cEl, sEl, kEl].forEach(function (el) { el.addEventListener('input', redraw); });
+  [pick, kEl].forEach(function (el) { el.addEventListener('input', redraw); });
   document.querySelectorAll('input[name=kf-mode]').forEach(function (r) { r.addEventListener('input', redraw); });
   Filter.ready(draw);
   IP.onChange(draw);
