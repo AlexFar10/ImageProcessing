@@ -66,6 +66,9 @@ tools/check_expected.py    prints what every exercise solution prints (to check 
 
 ## Editing
 
+- **After changing a .js or .css file**, raise the `?v=…` number in the `<script>` / `<link>` tags of every page
+  (e.g. `sed -i '' 's/?v=20261031/?v=20261101/g' *.html`). Otherwise browsers may keep the old file for up to 10 minutes.
+
 - **Look:** light theme only, four colors (text, muted gray, blue accent, red for mistakes), set at the top of `css/style.css`. Every topic page has four `<section class="part">` blocks (Theory, Demo, Code, Quick questions; Binarization has no Code part); `buildLayout()` in `js/core.js` turns them into tabs and sidebar links.
 - **Text** is plain HTML in each page. Underline a glossary word with
   `<span class="term" data-term="pixel">pixels</span>`; the id must exist in `js/glossary-data.js`.
