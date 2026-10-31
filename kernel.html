@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kernel and blur · Image Processing Lab</title>
-  <link rel="stylesheet" href="css/style.css?v=20261102">
+  <link rel="stylesheet" href="css/style.css?v=20261103">
 </head>
 <body data-page="kernel">
 <main>
@@ -99,11 +99,8 @@
       <figure class="figure"><canvas id="kc-boximg"></canvas><figcaption id="kc-box-cap"></figcaption></figure>
       <figure class="figure"><canvas id="kc-gaussimg"></canvas><figcaption id="kc-gauss-cap"></figcaption></figure>
     </div>
-    <div class="grid-3 kernel-maps">
-      <div></div>
-      <figure class="figure"><canvas id="kc-boxmap" ></canvas><figcaption id="kc-boxmap-cap"></figcaption></figure>
-      <figure class="figure"><canvas id="kc-gaussmap" ></canvas><figcaption id="kc-gaussmap-cap"></figcaption></figure>
-    </div>
+    <canvas id="kc-profile" style="width:100%;margin-top:1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px"></canvas>
+    <p class="caption">The middle row of each kernel. Each curve has its own height: compare only the width and the shape.</p>
   </section>
 
   <!-- ============ Code ============ -->
@@ -115,13 +112,13 @@
     <div id="game-bug-even"></div>
   </section>
 </main>
-<script src="js/test-image.js?v=20261102"></script>
-<script src="js/filter-images.js?v=20261102"></script>
-<script src="js/glossary-data.js?v=20261102"></script>
-<script src="js/core.js?v=20261102"></script>
-<script src="js/games.js?v=20261102"></script>
-<script src="js/filter.js?v=20261102"></script>
-<script src="js/diagram.js?v=20261102"></script>
-<script src="js/pages/kernel.js?v=20261102"></script>
+<script src="js/test-image.js?v=20261103"></script>
+<script src="js/filter-images.js?v=20261103"></script>
+<script src="js/glossary-data.js?v=20261103"></script>
+<script src="js/core.js?v=20261103"></script>
+<script src="js/games.js?v=20261103"></script>
+<script src="js/filter.js?v=20261103"></script>
+<script src="js/diagram.js?v=20261103"></script>
+<script src="js/pages/kernel.js?v=20261103"></script>
 </body>
 </html>

@@ -253,6 +253,43 @@
 })();
 
 /* ---------- Demo C: box vs Gaussian ---------- */
+// The middle row of both kernels on one axis: the box is a flat step, the Gaussian a bell.
+// Each is scaled to its own peak, so moving one slider never changes the other curve.
+function drawProfile(k, sigma, gsize) {
+  var canvas = document.getElementById('kc-profile'), W = 760, H = 230, R = 31;
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d'), left = 30, right = W - 30, base = H - 40, top = 50;
+  function X(d) { return left + (d + R) / (2 * R) * (right - left); }
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  // axis with ticks every 10 pixels
+  ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(left, base + 0.5); ctx.lineTo(right, base + 0.5); ctx.stroke();
+  ctx.fillStyle = '#6b7280'; ctx.font = '14px system-ui, sans-serif'; ctx.textAlign = 'center';
+  for (var d = -30; d <= 30; d += 10) { ctx.fillRect(X(d), base, 1, 5); ctx.fillText(String(d), X(d), base + 22); }
+  ctx.fillText('pixels from the centre', W / 2, H - 2);
+  // box: a flat step as wide as the kernel
+  var r = (k - 1) / 2;
+  ctx.fillStyle = 'rgba(83, 74, 183, 0.15)'; ctx.strokeStyle = '#534AB7'; ctx.lineWidth = 2.5;
+  ctx.fillRect(X(-r - 0.5), top, X(r + 0.5) - X(-r - 0.5), base - top);
+  ctx.beginPath(); ctx.moveTo(X(-R), base); ctx.lineTo(X(-r - 0.5), base); ctx.lineTo(X(-r - 0.5), top);
+  ctx.lineTo(X(r + 0.5), top); ctx.lineTo(X(r + 0.5), base); ctx.lineTo(X(R), base); ctx.stroke();
+  // Gaussian: a smooth bell, cut at 3 sigma (the kernel size)
+  var rg = (gsize - 1) / 2;
+  ctx.strokeStyle = '#3B6D11'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (var x = -R; x <= R; x += 0.25) {
+    var v = Math.abs(x) <= rg + 0.5 ? Math.exp(-x * x / (2 * sigma * sigma)) : 0;
+    var y = base - v * (base - top);
+    if (x === -R) ctx.moveTo(X(x), y); else ctx.lineTo(X(x), y);
+  }
+  ctx.stroke();
+  // legend
+  ctx.textAlign = 'left'; ctx.font = '15px system-ui, sans-serif';
+  ctx.fillStyle = '#534AB7'; ctx.fillRect(left, 14, 18, 12);
+  ctx.fillStyle = '#000'; ctx.fillText('box ' + k + ' × ' + k + ' (every weight equal)', left + 26, 25);
+  ctx.fillStyle = '#3B6D11'; ctx.fillRect(W / 2 + 10, 19, 18, 3);
+  ctx.fillStyle = '#000'; ctx.fillText('Gaussian σ = ' + sigma + ', ' + gsize + ' × ' + gsize, W / 2 + 36, 25);
+}
 (function () {
   var pick = Filter.picker('noisy');
   document.getElementById('kc-controls').prepend(IP.el('label', {}, 'Image ', pick));
@@ -268,12 +305,7 @@
     IP.draw(document.getElementById('kc-gaussimg'), Filter.toGray(Filter.gaussian(f, sigma, 'reflect')));
     document.getElementById('kc-box-cap').textContent = 'cv2.blur(img, (' + k + ', ' + k + '))';
     document.getElementById('kc-gauss-cap').textContent = 'cv2.GaussianBlur(img, (0, 0), ' + sigma + ')';
-    var g1 = Filter.gaussian1D(gsize, sigma);
-    Filter.drawKernel(document.getElementById('kc-boxmap'), Filter.outer(Filter.box1D(k), Filter.box1D(k)));
-    Filter.drawKernel(document.getElementById('kc-gaussmap'), Filter.outer(g1, g1));
-    document.getElementById('kc-boxmap-cap').textContent = 'box ' + k + ' × ' + k + ': every weight 1/' + (k * k) + ' = ' + (1 / (k * k)).toFixed(4);
-    var mid = g1[(gsize - 1) / 2];
-    document.getElementById('kc-gaussmap-cap').textContent = 'Gaussian ' + gsize + ' × ' + gsize + ': centre ' + (mid * mid).toFixed(4) + ', corners ' + (g1[0] * g1[0]).toFixed(6);
+    drawProfile(k, sigma, gsize);
   }
   var redraw = Filter.onFrame(draw);
   [boxEl, sigmaEl, pick].forEach(function (el) { el.addEventListener('input', redraw); });

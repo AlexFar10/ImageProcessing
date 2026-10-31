@@ -192,24 +192,5 @@ Filter.picker = function (value) {
 
 /* ---------- drawings ---------- */
 
-// A kernel as a "heat map": darker purple = bigger coefficient.
-// Every coefficient is a square of `cell` pixels (default 4), so a bigger kernel is a bigger picture.
-Filter.drawKernel = function (canvas, rows, cell) {
-  var n = rows.length, max = 0;
-  cell = cell || 4;
-  rows.forEach(function (row) { row.forEach(function (v) { max = Math.max(max, Math.abs(v)); }); });
-  canvas.width = canvas.height = n * cell + 1;
-  var ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  rows.forEach(function (row, r) {
-    row.forEach(function (v, c) {
-      var t = max ? Math.abs(v) / max : 0;   // 0 = white, 1 = #534AB7
-      ctx.fillStyle = 'rgb(' + Math.round(255 - t * (255 - 0x53)) + ',' + Math.round(255 - t * (255 - 0x4A)) + ',' + Math.round(255 - t * (255 - 0xB7)) + ')';
-      ctx.fillRect(c * cell + 1, r * cell + 1, cell - 1, cell - 1);   // 1 px white line between cells
-    });
-  });
-  return canvas;
-};
 // rows of a separable kernel: outer product of two 1D kernels
 Filter.outer = function (a, b) { return a.map(function (x) { return b.map(function (y) { return x * y; }); }); };
