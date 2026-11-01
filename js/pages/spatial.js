@@ -240,27 +240,40 @@ function recipes(id, list, label) {
   put('d-border', D.svg(560, 264, b, 'Zero padding makes the corners 44 and the edges 67'));
 })();
 
-// Demo: the border mode on an 8x8 image of 100 and on the image of the image bar
+// Demo: the border mode on a small 8x8 image (bright left column) and on the image of the image bar
 (function () {
+  var N = 8, small = Filter.make(N, N);
+  for (var i = 0; i < N * N; i++) small.data[i] = i % N === 0 ? 200 : 10;
   var LIVE = {
-    zeros: 'Zeros: corner 44, because five of the nine values it averaged were the zeros we added; edges 67 (three zeros). The photo gets a dark frame.',
-    replicate: 'Replicate: the invented pixels copy the edge, so every average is still 100 and the photo has no dark frame.',
-    reflect: 'Reflect-101: the invented pixels mirror the inside, so every average is still 100 and the photo has no dark frame.'
+    zeros: 'Zeros: the invented column is 0, so the bright left column drops to 70 (and 47 in the corners). The photo gets a dark frame.',
+    replicate: 'Replicate: the invented column copies the edge (200), so the left column stays bright: 137.',
+    reflect: 'Reflect-101: the invented column mirrors the next one inside (10), so the left column becomes 73.'
   };
-  function draw() {
-    var border = document.querySelector('input[name=kb-border]:checked').value;
-    var flat = Filter.make(8, 8);
-    flat.data.fill(100);
-    var small = Filter.toGray(Filter.box(flat, 3, border)), grid = document.getElementById('kb-grid');
-    grid.innerHTML = '';
-    for (var r = 0; r < 8; r++) {
+  function table(id, rows) {
+    var t = document.getElementById(id);
+    t.innerHTML = '';
+    rows.forEach(function (row) {
       var tr = IP.el('tr');
-      for (var c = 0; c < 8; c++) {
-        var v = small.data[r * 8 + c];
-        tr.appendChild(IP.el('td', { text: String(v), style: 'background:' + D.pixel(v) }));
+      row.forEach(function (cell) { tr.appendChild(IP.el('td', { text: String(cell.v), class: cell.pad ? 'pad' : '', style: cell.pad ? '' : 'background:' + D.pixel(cell.v) })); });
+      t.appendChild(tr);
+    });
+  }
+  function draw() {
+    var border = document.querySelector('input[name=kb-border]:checked').value, rows = [], r, c;
+    // the image with a ring of invented pixels, as the chosen border mode makes them
+    for (r = -1; r <= N; r++) {
+      var row = [];
+      for (c = -1; c <= N; c++) {
+        var rr = Filter.borderIndex(r, N, border), cc = Filter.borderIndex(c, N, border);
+        row.push({ v: rr < 0 || cc < 0 ? 0 : small.data[rr * N + cc], pad: r < 0 || r >= N || c < 0 || c >= N });
       }
-      grid.appendChild(tr);
+      rows.push(row);
     }
+    table('kb-in', rows);
+    var blurred = Filter.toGray(Filter.box(small, 3, border));
+    rows = [];
+    for (r = 0; r < N; r++) { rows.push([]); for (c = 0; c < N; c++) rows[r].push({ v: blurred.data[r * N + c] }); }
+    table('kb-grid', rows);
     IP.draw(document.getElementById('kb-photo'), Filter.toGray(Filter.box(Filter.fromGray(IP.gray()), 31, border)));
     document.getElementById('kb-caption').textContent = LIVE[border];
   }

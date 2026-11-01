@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Spatial filtering · Image Processing Lab</title>
-  <link rel="stylesheet" href="css/style.css?v=20261110">
+  <link rel="stylesheet" href="css/style.css?v=20261111">
 </head>
 <body data-page="spatial">
 <main>
@@ -60,14 +60,17 @@
     <div id="d-border"></div>
 
     <h2>Demo: the border mode</h2>
-    <p class="look"><b>What to look for:</b> with zeros, the numbers at the edge drop and the photo gets a dark frame. With the other two, nothing changes at the edge.</p>
+    <p class="look"><b>What to look for:</b> the gray ring shows the invented pixels. Watch how the bright left column changes after the blur with each mode, and the dark frame on the photo with zeros.</p>
     <div class="controls">
       <label><input type="radio" name="kb-border" value="zeros" checked> zeros</label>
       <label><input type="radio" name="kb-border" value="replicate"> replicate</label>
       <label><input type="radio" name="kb-border" value="reflect"> reflect-101</label>
     </div>
     <div class="grid-2">
-      <figure class="figure"><div class="table-scroll"><table class="num-grid" id="kb-grid"></table></div><figcaption>8 × 8 image, every pixel 100, blurred 3 × 3</figcaption></figure>
+      <figure class="figure"><div class="table-scroll"><table class="num-grid" id="kb-in"></table></div><figcaption>8 × 8 image (left column 200, the rest 10) and the invented ring</figcaption></figure>
+      <figure class="figure"><div class="table-scroll"><table class="num-grid" id="kb-grid"></table></div><figcaption>blurred 3 × 3 with this border</figcaption></figure>
+    </div>
+    <div class="grid-2">
       <figure class="figure"><canvas id="kb-photo"></canvas><figcaption>your image, blurred 31 × 31</figcaption></figure>
     </div>
     <p class="live" id="kb-caption"></p>
@@ -198,13 +201,13 @@
     </div>
   </section>
 </main>
-<script src="js/test-image.js?v=20261110"></script>
-<script src="js/filter-images.js?v=20261110"></script>
-<script src="js/glossary-data.js?v=20261110"></script>
-<script src="js/core.js?v=20261110"></script>
-<script src="js/games.js?v=20261110"></script>
-<script src="js/filter.js?v=20261110"></script>
-<script src="js/diagram.js?v=20261110"></script>
-<script src="js/pages/spatial.js?v=20261110"></script>
+<script src="js/test-image.js?v=20261111"></script>
+<script src="js/filter-images.js?v=20261111"></script>
+<script src="js/glossary-data.js?v=20261111"></script>
+<script src="js/core.js?v=20261111"></script>
+<script src="js/games.js?v=20261111"></script>
+<script src="js/filter.js?v=20261111"></script>
+<script src="js/diagram.js?v=20261111"></script>
+<script src="js/pages/spatial.js?v=20261111"></script>
 </body>
 </html>
