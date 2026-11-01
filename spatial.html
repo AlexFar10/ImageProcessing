@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Spatial filtering · Image Processing Lab</title>
-  <link rel="stylesheet" href="css/style.css?v=20261108">
+  <link rel="stylesheet" href="css/style.css?v=20261109">
 </head>
 <body data-page="spatial">
 <main>
@@ -48,33 +48,7 @@
       <figure class="figure"><canvas id="ks-dst"></canvas><figcaption id="ks-dst-cap"></figcaption></figure>
     </div>
 
-    <div class="exercise">
-      <h3 style="margin-top:0">Exercise: two kernels of your own</h3>
-      <p>Write a kernel that leaves the image unchanged, then one that blurs it. Both prints must say <code>True</code>.</p>
-      <div class="code"><pre>
-import cv2
-import numpy as np
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-same = ...   # your code here: a 3x3 kernel that changes nothing
-blur = ...   # your code here: a 3x3 kernel where all 9 neighbours count the same
-print(np.array_equal(cv2.filter2D(gray, -1, same), gray))
-print(np.array_equal(cv2.filter2D(gray, -1, blur), cv2.blur(gray, (3, 3))))
-</pre></div>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import cv2
-import numpy as np
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-same = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]], np.float32)   # listen only to yourself
-blur = np.ones((3, 3), np.float32) / 9                           # everyone counts 1/9
-print(np.array_equal(cv2.filter2D(gray, -1, same), gray))                   # True
-print(np.array_equal(cv2.filter2D(gray, -1, blur), cv2.blur(gray, (3, 3))))  # True
-</pre></div>
-      </details>
-    </div>
+    <div id="ex-kernel"></div>
     <div class="quiz">
       <p class="q">Every coefficient of a 3 × 3 kernel is 1/9. The filter…</p>
       <div class="choices">
@@ -109,32 +83,7 @@ print(np.array_equal(cv2.filter2D(gray, -1, blur), cv2.blur(gray, (3, 3))))  # T
     </div>
     <p class="live" id="kb-caption"></p>
 
-    <div class="exercise">
-      <h3 style="margin-top:0">Exercise: the wrong corner</h3>
-      <p>Blur an image where every pixel is 100, once with zeros around it and once reflected. Print the top-left pixel of both. Which one is wrong, and which one parameter fixes it?</p>
-      <div class="code"><pre>
-import cv2
-import numpy as np
-
-flat = np.full((5, 5), 100, np.uint8)   # every pixel is 100
-# your code here: cv2.blur(flat, (3, 3), borderType=...) with cv2.BORDER_CONSTANT,
-# then with cv2.BORDER_REFLECT; print [0, 0] of both
-</pre></div>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import cv2
-import numpy as np
-
-flat = np.full((5, 5), 100, np.uint8)
-zero = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_CONSTANT)
-refl = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_REFLECT)
-print(zero[0, 0], refl[0, 0])   # 44 100
-# The image is flat, so every blurred pixel should stay 100: zeros are wrong.
-# The fix is the borderType parameter.
-</pre></div>
-      </details>
-    </div>
+    <div id="ex-borders"></div>
     <div class="quiz">
       <p class="q">You blur a uniform image of 100s with zero padding. A corner pixel becomes…</p>
       <div class="choices">
@@ -170,33 +119,7 @@ print(zero[0, 0], refl[0, 0])   # 44 100
     </div>
     <p class="live" id="kc-live"></p>
 
-    <div class="exercise">
-      <h3 style="margin-top:0">Exercise: clean the noisy text</h3>
-      <p>The letters in <code>noisy.png</code> are hard to read. Blur just enough to remove the noise without losing the letters. Try box and Gaussian: which one gets closer to the clean image?</p>
-      <div class="code"><pre>
-import cv2
-
-noisy = cv2.imread("noisy.png", cv2.IMREAD_GRAYSCALE)
-clean = cv2.imread("edges.png", cv2.IMREAD_GRAYSCALE)   # the same picture without noise
-# your code here: try cv2.blur(noisy, (k, k)) and cv2.GaussianBlur(noisy, (0, 0), s)
-# for a few k and s; print round(cv2.absdiff(result, clean).mean(), 2) (smaller = closer)
-</pre></div>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import cv2
-
-noisy = cv2.imread("noisy.png", cv2.IMREAD_GRAYSCALE)
-clean = cv2.imread("edges.png", cv2.IMREAD_GRAYSCALE)
-for k in (3, 5, 7, 9):
-    print("box", k, round(cv2.absdiff(cv2.blur(noisy, (k, k)), clean).mean(), 2))
-for s in (1, 1.5, 2, 3):
-    print("gauss", s, round(cv2.absdiff(cv2.GaussianBlur(noisy, (0, 0), s), clean).mean(), 2))
-# box 5 is the best box (11.6), sigma 1.5 the best Gaussian (10.9):
-# the Gaussian gets closer, because it blurs the letters' edges less.
-</pre></div>
-      </details>
-    </div>
+    <div id="ex-blur"></div>
     <div class="quiz">
       <p class="q">To get the same blur as a box, a Gaussian kernel must be…</p>
       <div class="choices">
@@ -234,44 +157,7 @@ for s in (1, 1.5, 2, 3):
     </div>
     <p class="live" id="ke-live"></p>
 
-    <div class="exercise">
-      <h3 style="margin-top:0">Exercise: vertical, horizontal, both</h3>
-      <p>Make an image with only the vertical edges, one with only the horizontal ones, and one with both.</p>
-      <div class="code"><pre>
-import cv2
-import numpy as np
-
-gray = cv2.imread("edges.png", cv2.IMREAD_GRAYSCALE)
-# your code here: vertical, horizontal, both (cv2.Sobel with cv2.CV_32F,
-# cv2.convertScaleAbs to show them, cv2.magnitude for both)
-print(vertical[60, 20], horizontal[60, 20])   # left side of the dark square
-print(vertical[20, 60], horizontal[20, 60])   # top side of the dark square
-</pre></div>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-gray = cv2.imread("edges.png", cv2.IMREAD_GRAYSCALE)
-gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0)
-gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1)
-vertical = cv2.convertScaleAbs(gx)
-horizontal = cv2.convertScaleAbs(gy)
-both = cv2.convertScaleAbs(cv2.magnitude(gx, gy))
-print(vertical[60, 20], horizontal[60, 20])   # 255 0
-print(vertical[20, 60], horizontal[20, 60])   # 0 255
-
-for i, (name, img) in enumerate([("vertical", vertical), ("horizontal", horizontal), ("both", both)]):
-    plt.subplot(1, 3, i + 1)
-    plt.imshow(img, cmap="gray")
-    plt.title(name)
-    plt.axis("off")
-plt.show()
-</pre></div>
-      </details>
-    </div>
+    <div id="ex-edges"></div>
     <div class="quiz">
       <p class="q">On a flat area, a Sobel kernel gives…</p>
       <div class="choices">
@@ -283,74 +169,7 @@ plt.show()
     </div>
   </section>
 
-  <!-- ============ 5. 8-bit trap ============ -->
-  <section class="part" id="trap" data-title="8-bit trap">
-    <p class="story">Every pixel lives in a little box in memory, and the size of the box decides what fits in it
-      (the <span class="term" data-term="cv-depth">data type</span>):</p>
-    <ul class="points">
-      <li><code>CV_8U</code> (uint8): whole numbers 0…255, 1 byte. Anything outside is cut: −190 → 0, 760 → 255 (<span class="term" data-term="saturation">saturation</span>).</li>
-      <li><code>CV_32F</code>: decimals and negative numbers, 4 bytes.</li>
-      <li><code>CV_64F</code>: even more precision, 8 bytes, rarely needed.</li>
-    </ul>
-    <p class="story">An 800 × 600 gray image takes 0.48 MB, 1.92 MB or 3.84 MB. Sobel and Laplacian give negative numbers,
-      so with <code>CV_8U</code> about half of the edges silently disappear.</p>
-    <div id="d-boxes"></div>
-    <p class="tech">Safe recipe: compute in float, take the absolute value or the magnitude, then cut to 0…255 and go back to uint8 to show it.</p>
-    <div class="table-scroll"><table class="tools">
-      <thead><tr><th></th><th>NumPy uint8</th><th>OpenCV</th></tr></thead>
-      <tbody>
-        <tr><td>250 + 10</td><td><code>4</code> (wraps around)</td><td><code>cv2.add</code> → 255</td></tr>
-        <tr><td>5 − 10</td><td><code>251</code> (wraps around)</td><td><code>cv2.subtract</code> → 0, <code>cv2.<span class="term" data-term="absdiff">absdiff</span></code> → 5</td></tr>
-        <tr><td>edge strength</td><td></td><td><code>cv2.magnitude</code> (needs float inputs)</td></tr>
-        <tr><td>show a float result</td><td></td><td><code>cv2.convertScaleAbs</code>: absolute value, cut, uint8</td></tr>
-      </tbody>
-    </table></div>
-
-    <h2>Demo: 8 bits against float</h2>
-    <p class="look"><b>What to look for:</b> the same vertical-edge filter, computed two ways. Count the edges on each side.</p>
-    <div class="grid-2">
-      <figure class="figure"><canvas id="kt-8"></canvas><figcaption>dx computed in 8 bits (CV_8U)</figcaption></figure>
-      <figure class="figure"><canvas id="kt-f"></canvas><figcaption>dx computed in float, then absolute value</figcaption></figure>
-    </div>
-    <p class="live" id="kt-live"></p>
-
-    <div class="exercise">
-      <h3 style="margin-top:0">Exercise: the half-empty result</h3>
-      <p>This Sobel result looks half empty. Find why and fix it by changing one argument.</p>
-      <div class="code"><pre>
-import cv2
-import numpy as np
-
-gray = cv2.imread("edges.png", cv2.IMREAD_GRAYSCALE)
-gx = cv2.Sobel(gray, cv2.CV_8U, 1, 0)
-print(np.count_nonzero(gx))   # 2139
-# your code here: fix the line above, then make it showable with cv2.convertScaleAbs
-</pre></div>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import cv2
-import numpy as np
-
-gray = cv2.imread("edges.png", cv2.IMREAD_GRAYSCALE)
-gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0)   # float keeps the negative values
-edges = cv2.convertScaleAbs(gx)          # absolute value, cut to 0..255, uint8
-print(np.count_nonzero(edges))           # 4603: about twice as many
-</pre></div>
-      </details>
-    </div>
-    <div class="quiz">
-      <p class="q">With 8-bit output, negative Sobel responses become…</p>
-      <div class="choices">
-        <button type="button" data-correct>0 (lost)</button>
-        <button type="button">positive</button>
-        <button type="button">wrapped-around values</button>
-      </div>
-      <p class="explain" hidden>OpenCV cuts everything below 0 to 0, so edges going from bright to dark disappear.</p>
-    </div>
-  </section>
-
-  <!-- ============ 6. Sharpening ============ -->
+  <!-- ============ 5. Sharpening ============ -->
   <section class="part" id="sharpening" data-title="Sharpening">
     <p class="story"><span class="term" data-term="sharpening">Sharpening</span> makes an image look clearer: find the edges and push them apart,
       so the dark side of each edge gets darker and the bright side brighter.</p>
@@ -377,43 +196,7 @@ print(np.count_nonzero(edges))           # 4603: about twice as many
     </div>
     <p class="live" id="kf-live"></p>
 
-    <div class="exercise">
-      <h3 style="margin-top:0">Exercise: the sign error</h3>
-      <p>This "sharpened" image has softer grass and odd outlines instead of crisper edges. Find the sign error and fix it. Bonus: sharpen with unsharp masking, k = 1 and k = 4.5.</p>
-      <div class="code"><pre>
-import cv2
-import numpy as np
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-lap = cv2.Laplacian(gray, cv2.CV_32F)
-sharp = np.clip(gray + lap, 0, 255).astype(np.uint8)
-# your code here: fix the line above; bonus with blur = cv2.GaussianBlur(gray, (0, 0), 5)
-</pre></div>
-      <details>
-        <summary>Show solution</summary>
-        <div class="code"><pre>
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)
-lap = cv2.Laplacian(gray, cv2.CV_32F)
-sharp = np.clip(gray - lap, 0, 255).astype(np.uint8)   # minus: the centre of the kernel is -4
-
-blur = cv2.GaussianBlur(gray, (0, 0), 5)
-mask = gray.astype(np.float32) - blur
-k1 = np.clip(gray + 1 * mask, 0, 255).astype(np.uint8)     # unsharp masking
-k45 = np.clip(gray + 4.5 * mask, 0, 255).astype(np.uint8)  # highboost
-
-for i, (name, img) in enumerate([("gray", gray), ("gray - lap", sharp), ("k = 1", k1), ("k = 4.5", k45)]):
-    plt.subplot(1, 4, i + 1)
-    plt.imshow(img, cmap="gray", vmin=0, vmax=255)
-    plt.title(name)
-    plt.axis("off")
-plt.show()
-</pre></div>
-      </details>
-    </div>
+    <div id="ex-sharpening"></div>
     <div class="quiz">
       <p class="q">Unsharp masking with k &gt; 1 is called…</p>
       <div class="choices">
@@ -425,12 +208,13 @@ plt.show()
     </div>
   </section>
 </main>
-<script src="js/test-image.js?v=20261108"></script>
-<script src="js/filter-images.js?v=20261108"></script>
-<script src="js/glossary-data.js?v=20261108"></script>
-<script src="js/core.js?v=20261108"></script>
-<script src="js/filter.js?v=20261108"></script>
-<script src="js/diagram.js?v=20261108"></script>
-<script src="js/pages/spatial.js?v=20261108"></script>
+<script src="js/test-image.js?v=20261109"></script>
+<script src="js/filter-images.js?v=20261109"></script>
+<script src="js/glossary-data.js?v=20261109"></script>
+<script src="js/core.js?v=20261109"></script>
+<script src="js/games.js?v=20261109"></script>
+<script src="js/filter.js?v=20261109"></script>
+<script src="js/diagram.js?v=20261109"></script>
+<script src="js/pages/spatial.js?v=20261109"></script>
 </body>
 </html>

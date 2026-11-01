@@ -1,4 +1,4 @@
-// Section 6: spatial filtering. Six topic tabs: kernel, borders, blur, edges, 8-bit trap, sharpening.
+// Section 6: spatial filtering. Five topic tabs: kernel, borders, blur, edges, sharpening.
 // Each tab: story, illustration (SVG from diagram.js), demo, exercise. The filtering itself is in filter.js.
 
 var D = Diagram;
@@ -94,7 +94,7 @@ function put(id, svg) { document.getElementById(id).innerHTML = svg; }
   var KERNELS = {
     box: { label: 'blur (box)', effect: 'Blur: every pixel becomes the average of its 9 neighbours. The single dots fade, the edge gets softer.' },
     identity: { label: 'keep as is', effect: 'Keep as is: only the middle coefficient is 1, so every pixel keeps its own value.' },
-    sobelX: { label: 'find vertical edges', effect: 'Find vertical edges: right column minus left column. Flat areas give 0, the edge from dark to bright lights up. (Values below 0 are cut to 0 here: see the 8-bit trap tab.)' },
+    sobelX: { label: 'find vertical edges', effect: 'Find vertical edges: right column minus left column. Flat areas give 0, the edge from dark to bright lights up. (Values below 0 are stored as 0, like cv2.filter2D does on uint8.)' },
     sharpen: { label: 'sharpen', effect: 'Sharpen: 5 × you minus your 4 neighbours. Flat areas stay the same, the edge and the dots get stronger.' }
   };
   var sel = document.getElementById('ks-kernel');
@@ -401,41 +401,7 @@ put('d-bars', D.svg(560, 200, bars(20, 44, Filter.box1D(7), 'box: everyone the s
 })();
 
 /* =====================================================================
-   5. 8-bit trap
-   ===================================================================== */
-
-// Three boxes of different size; -190 goes in
-(function () {
-  var out = '', boxes = [['CV_8U', '1 byte', 30, '0', 'cut to 0'], ['CV_32F', '4 bytes', 120, '−190', 'kept'], ['CV_64F', '8 bytes', 240, '−190', 'kept']];
-  boxes.forEach(function (b, i) {
-    var y = 24 + i * 58;
-    out += D.text(20, y + 22, '−190', { anchor: 'start', bold: true });
-    out += D.arrow(66, y + 18, 106, y + 18);
-    out += '<rect x="112" y="' + y + '" width="' + b[2] + '" height="36" fill="' + D.C.light + '" stroke="' + D.C.dark + '" stroke-width="1.5"/>';
-    out += D.text(112 + b[2] + 10, y + 16, b[0], { anchor: 'start', bold: true });
-    out += D.text(112 + b[2] + 10, y + 32, b[1], { anchor: 'start', size: 11 });
-    out += D.cell(480, y, 36, green(b[3]));
-    out += D.text(526, y + 22, b[4], { anchor: 'start', size: 11 });
-  });
-  put('d-boxes', D.svg(600, 196, out, 'Minus 190 stored in 8 bits becomes 0; in 32 or 64 bit float it stays minus 190'));
-})();
-
-// Demo: dx in 8 bits vs dx in float
-(function () {
-  function draw() {
-    var gx = Filter.sobelX(Filter.fromGray(IP.gray())), a = Filter.toGray(gx, 'clip'), b = Filter.toGray(gx, 'abs'), na = 0, nb = 0;
-    for (var i = 0; i < a.data.length; i++) { if (a.data[i]) na++; if (b.data[i]) nb++; }
-    IP.draw(document.getElementById('kt-8'), a);
-    IP.draw(document.getElementById('kt-f'), b);
-    document.getElementById('kt-live').textContent = 'Left: the edges that go from bright to dark are gone; only ' + na +
-      ' pixels light up. Right: ' + nb + ' pixels, both sides of every edge.';
-  }
-  IP.ready(draw);
-  IP.onChange(draw);
-})();
-
-/* =====================================================================
-   6. Sharpening
+   5. Sharpening
    ===================================================================== */
 
 // Two strips: Laplacian sharpening and unsharp masking
@@ -494,3 +460,92 @@ put('d-bars', D.svg(560, 200, bars(20, 44, Filter.box1D(7), 'box: everyone the s
   IP.ready(draw);
   IP.onChange(draw);
 })();
+
+/* =====================================================================
+   Exercises: code with dropdowns (one per tab)
+   ===================================================================== */
+var READ_GRAY = 'gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)\n';
+
+Games.fillBlanks(document.getElementById('ex-kernel'), {
+  title: 'Exercise: two kernels of your own',
+  task: 'Fill in a kernel that leaves the image unchanged and one that blurs it, so that the print says <code>True</code>.',
+  parts: [
+    READ_GRAY + 'same = np.array([[0, 0, 0], [0, ', { answer: '1', options: ['0', '1', '9'], hint: 'To change nothing, listen only to yourself: the middle coefficient is 1, all others 0.' },
+    ', 0], [0, 0, 0]], np.float32)\nblur = np.ones((3, 3), np.float32) / ', { answer: '9', options: ['1', '3', '9'], hint: 'All 9 neighbours count the same and the sum must stay 1: each one is 1/9.' },
+    '\nout = cv2.', { answer: 'filter2D', options: ['filter2D', 'threshold', 'Sobel'], hint: 'filter2D slides any kernel you give it over the image.' },
+    '(gray, -1, blur)\nprint(np.array_equal(out, cv2.blur(gray, ', { answer: '(3, 3)', options: ['(1, 1)', '(3, 3)', '(9, 9)'], hint: 'Your kernel is 3 × 3, so compare with a 3 × 3 box.' },
+    ')))   # True'
+  ],
+  explain: 'The middle 1 keeps every pixel as it is; nine coefficients of 1/9 average the window, exactly like cv2.blur with a 3 × 3 box.',
+  onCorrect: function (out) {
+    var f = Filter.fromGray(IP.gray());
+    out.append(IP.el('div', { class: 'grid-2' }, IP.figure(IP.gray(), 'same: unchanged'), IP.figure(Filter.toGray(Filter.box(f, 3, 'reflect')), 'out: blurred')));
+  }
+});
+
+Games.fillBlanks(document.getElementById('ex-borders'), {
+  title: 'Exercise: the wrong corner',
+  task: 'An image where every pixel is 100, blurred twice. Choose the border modes and what the program prints.',
+  parts: [
+    'flat = np.full((5, 5), 100, np.uint8)        # every pixel is 100\n' +
+    'zero = cv2.blur(flat, (3, 3), borderType=cv2.', { answer: 'BORDER_CONSTANT', options: ['BORDER_CONSTANT', 'BORDER_REFLECT', 'BORDER_REPLICATE'], hint: 'Zeros around the image: a constant border (0 by default).' },
+    ')   # zeros around\nrefl = cv2.blur(flat, (3, 3), borderType=cv2.', { answer: 'BORDER_REFLECT', options: ['BORDER_CONSTANT', 'BORDER_REFLECT', 'BORDER_REPLICATE'], hint: 'A mirror of the inside: reflect.' },
+    ')    # mirrored\nprint(zero[0, 0], refl[0, 0])   # prints ', { answer: '44 100', options: ['100 100', '44 100', '0 100', '44 44'], hint: 'The zero corner averages 4 × 100 and 5 zeros; the mirrored corner averages only 100s.' }
+  ],
+  explain: 'The image is flat, so every blurred pixel should stay 100: the zero border is wrong (400 / 9 = 44). The one parameter that fixes it is borderType.',
+  onCorrect: function (out) {
+    var f = Filter.fromGray(IP.gray());
+    out.append(IP.el('div', { class: 'grid-2' }, IP.figure(Filter.toGray(Filter.box(f, 31, 'zeros')), 'zeros: dark frame'), IP.figure(Filter.toGray(Filter.box(f, 31, 'reflect')), 'reflect: no frame')));
+  }
+});
+
+Games.fillBlanks(document.getElementById('ex-blur'), {
+  title: 'Exercise: clean the noisy text',
+  task: 'Blur <code>noisy.png</code> with a box and with a Gaussian, then pick the one closer to the clean <code>edges.png</code>.',
+  parts: [
+    'noisy = cv2.imread("noisy.png", cv2.IMREAD_GRAYSCALE)\nclean = cv2.imread("edges.png", cv2.IMREAD_GRAYSCALE)\n' +
+    'box = cv2.', { answer: 'blur', options: ['blur', 'GaussianBlur', 'Sobel'], hint: 'cv2.blur is the box filter: every neighbour counts the same.' },
+    '(noisy, (5, 5))\ngauss = cv2.GaussianBlur(noisy, ', { answer: '(0, 0)', options: ['(0, 0)', '(4, 4)', '(1.5, 1.5)'], hint: '(0, 0) lets OpenCV choose the size from sigma. Sizes must be whole odd numbers.' },
+    ', 1.5)\nprint(round(cv2.absdiff(box, clean).mean(), 2), round(cv2.absdiff(gauss, clean).mean(), 2))   # 11.6 10.9\n# closer to the clean image: ',
+    { answer: 'gauss', options: ['box', 'gauss'], hint: 'A smaller difference means closer to the clean image.' }
+  ],
+  explain: 'box gives 11.6, the Gaussian 10.9: the Gaussian is closer, because its close neighbours count most, so the letters\' edges smear less.',
+  onCorrect: function (out) {
+    var f = Filter.fromGray(Filter.extra.noisy);
+    out.append(IP.el('div', { class: 'grid-2' }, IP.figure(Filter.toGray(Filter.box(f, 5, 'reflect')), 'box 5 × 5'), IP.figure(Filter.toGray(Filter.gaussian(f, 1.5, 'reflect')), 'Gaussian σ = 1.5')));
+  }
+});
+
+Games.fillBlanks(document.getElementById('ex-edges'), {
+  title: 'Exercise: vertical, horizontal, both',
+  task: 'Choose the Sobel directions and the function that combines them.',
+  parts: [
+    'gray = cv2.imread("edges.png", cv2.IMREAD_GRAYSCALE)\ngx = cv2.Sobel(gray, cv2.CV_32F, ', { answer: '1, 0', options: ['1, 0', '0, 1', '1, 1'], hint: 'Vertical edges: the change from left to right, so dx = 1, dy = 0.' },
+    ')   # vertical edges\ngy = cv2.Sobel(gray, cv2.CV_32F, ', { answer: '0, 1', options: ['1, 0', '0, 1', '1, 1'], hint: 'Horizontal edges: the change from top to bottom, so dx = 0, dy = 1.' },
+    ')   # horizontal edges\nboth = cv2.convertScaleAbs(cv2.', { answer: 'magnitude', options: ['add', 'magnitude', 'absdiff'], hint: 'Adding can cancel out (+ and −); the magnitude √(gx² + gy²) never does.' },
+    '(gx, gy))\nprint(cv2.convertScaleAbs(gx)[60, 20])   # left side of the dark square: ', { answer: '255', options: ['0', '128', '255'], hint: 'The left side of the square is a strong vertical edge.' }
+  ],
+  explain: '(1, 0) finds vertical edges, (0, 1) horizontal ones, and the magnitude combines them. On the square\'s left side gx is huge, so it shows as 255.',
+  onCorrect: function (out) {
+    var f = Filter.fromGray(Filter.extra.edges), gx = Filter.sobelX(f), gy = Filter.sobelY(f), m = Filter.make(f.width, f.height);
+    for (var i = 0; i < m.data.length; i++) m.data[i] = Math.hypot(gx.data[i], gy.data[i]);
+    out.append(IP.el('div', { class: 'grid-3' }, IP.figure(Filter.toGray(gx, 'abs'), 'vertical'), IP.figure(Filter.toGray(gy, 'abs'), 'horizontal'), IP.figure(Filter.toGray(m), 'both')));
+  }
+});
+
+Games.fillBlanks(document.getElementById('ex-sharpening'), {
+  title: 'Exercise: sharpen two ways',
+  task: 'Choose the signs and the amount so that both results are sharper than the original.',
+  parts: [
+    READ_GRAY + 'lap = cv2.Laplacian(gray, cv2.CV_32F)\nsharp = np.clip(gray ', { answer: '-', options: ['+', '-'], hint: 'The kernel has −4 in the middle, so subtract it: original − Laplacian.' },
+    ' lap, 0, 255).astype(np.uint8)\n\nblur = cv2.GaussianBlur(gray, (0, 0), 5)\nmask = gray.astype(np.float32) ', { answer: '-', options: ['+', '-'], hint: 'The mask is what the blur took away: original − blur.' },
+    ' blur\nhigh = np.clip(gray + ', { answer: '4.5', options: ['0', '1', '4.5'], hint: 'k > 1 is highboost; k = 1 is plain unsharp masking.' },
+    ' * mask, 0, 255).astype(np.uint8)   # highboost'
+  ],
+  explain: 'Original − Laplacian sharpens; the mask is original − blur; k = 4.5 > 1 is highboost (the lecture example).',
+  onCorrect: function (out) {
+    var f = Filter.fromGray(IP.gray()), blur = Filter.saturate(Filter.gaussian(f, 5, 'reflect'));
+    out.append(IP.el('div', { class: 'grid-2' }, IP.figure(Filter.toGray(Filter.add(f, Filter.laplacian(f), -1)), 'sharp'),
+      IP.figure(Filter.toGray(Filter.add(f, Filter.add(f, blur, -1), 4.5)), 'high')));
+  }
+});

@@ -20,7 +20,7 @@ color.html            2. Color and grayscale (lab 3)
 quantization.html     3. Quantization and dithering (lab 3)
 histograms.html       4. Histograms
 binarization.html     5. Binarization (lab: histograms and binarization)
-spatial.html          6. Spatial filtering (lab 5): tabs Kernel, Borders, Blur, Edges, 8-bit trap, Sharpening
+spatial.html          6. Spatial filtering (lab 5): tabs Kernel, Borders, Blur, Edges, Sharpening
 kernel.html, edges.html  old addresses, they only redirect to spatial.html
 glossary.html         Glossary (built from js/glossary-data.js)
 
@@ -69,7 +69,7 @@ tools/check_expected.py    prints what every exercise solution prints (to check 
 - **After changing a .js or .css file**, raise the `?v=…` number in the `<script>` / `<link>` tags of every page
   (e.g. `sed -i '' 's/?v=20261031/?v=20261101/g' *.html`). Otherwise browsers may keep the old file for up to 10 minutes.
 
-- **Look:** light theme only, four colors (text, muted gray, blue accent, red for mistakes), set at the top of `css/style.css`. Every topic page has `<section class="part">` blocks (usually Theory, Demo, Code, Quick questions; Binarization has no Code part; Spatial filtering has six topic tabs, each with story, drawing, demo, exercise and one question); `buildLayout()` in `js/core.js` turns them into tabs and sidebar links.
+- **Look:** light theme only, four colors (text, muted gray, blue accent, red for mistakes), set at the top of `css/style.css`. Every topic page has `<section class="part">` blocks (usually Theory, Demo, Code, Quick questions; Binarization has no Code part; Spatial filtering has five topic tabs, each with story, drawing, demo, a fill-in code exercise and one question); `buildLayout()` in `js/core.js` turns them into tabs and sidebar links.
 - **Text** is plain HTML in each page. Underline a glossary word with
   `<span class="term" data-term="pixel">pixels</span>`; the id must exist in `js/glossary-data.js`.
 - **New glossary term:** add an entry to `js/glossary-data.js`; the glossary page and pop-ups update by themselves.

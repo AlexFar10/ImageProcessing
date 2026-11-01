@@ -5,12 +5,8 @@
 var GLOSSARY = {
   'border-mode': { term: 'Border mode', where: 'spatial.html#borders',
     short: 'How OpenCV invents the pixels outside the image: BORDER_CONSTANT (zeros), BORDER_REPLICATE, BORDER_REFLECT, BORDER_REFLECT_101 (the default).' },
-  'absdiff': { term: 'absdiff', where: 'spatial.html#trap',
-    short: 'cv2.absdiff(a, b): |a − b| for every pixel, without the wrap-around of uint8 subtraction (5 vs 10 gives 5, not 251).' },
   'magnitude': { term: 'Magnitude', where: 'spatial.html#edges',
     short: 'The length of the gradient, √(dx² + dy²): how strong an edge is, whatever its direction. cv2.magnitude needs float inputs.' },
-  'cv-depth': { term: 'Data type (CV_8U / CV_32F / CV_64F)', where: 'spatial.html#trap',
-    short: 'What one pixel can hold in OpenCV: CV_8U whole numbers 0…255 (1 byte), CV_32F decimals and negatives (4 bytes), CV_64F more precision (8 bytes).' },
   'kernel': { term: 'Kernel', where: 'spatial.html#kernel',
     short: 'A small matrix of coefficients slid over the image; each new pixel is the sum of neighbours times coefficients.' },
   'correlation': { term: 'Correlation', where: 'spatial.html#kernel',
