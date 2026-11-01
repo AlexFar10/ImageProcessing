@@ -73,23 +73,21 @@ print(np.count_nonzero(hist))
 H = np.cumsum(hist)
 print(H[127], H[-1])
 
-print("== Section 6 ==")
-# the answers of the "What does it print?" game
+print("== Section 6 (spatial filtering exercises) ==")
+same = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]], np.float32)
+blur = np.ones((3, 3), np.float32) / 9
+print(np.array_equal(cv2.filter2D(gray, -1, same), gray), np.array_equal(cv2.filter2D(gray, -1, blur), cv2.blur(gray, (3, 3))))
 flat = np.full((5, 5), 100, np.uint8)
-zero = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_CONSTANT)
-refl = cv2.blur(flat, (3, 3), borderType=cv2.BORDER_REFLECT)
-print(zero[0, 0], zero[0, 2], refl[0, 0])
-print(np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]]).sum())
-row = np.array([[0, 0, 0, 1, 0, 0, 0]], np.float32)
-print(cv2.filter2D(row, -1, np.array([[1, 2, 3]], np.float32), borderType=cv2.BORDER_CONSTANT))
-print(cv2.GaussianBlur(gray, (0, 0), 3).shape)   # (0, 0) is allowed
-
-print("== Section 7 ==")
-# the answers of the "What does it print?" game
-row = np.array([10, 10, 10, 200, 200, 200])
-print(np.diff(row))
-print(row[2:] + row[:-2] - 2 * row[1:-1])
-k = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-print(k.sum(), (np.array([[10, 10, 200]] * 3, np.float32) * k).sum())
-print(cv2.Sobel(np.array([[200, 200, 10, 10]] * 3, np.uint8), cv2.CV_8U, 1, 0)[1])
-print(np.sqrt(30 ** 2 + 40 ** 2))
+print(cv2.blur(flat, (3, 3), borderType=cv2.BORDER_CONSTANT)[0, 0], cv2.blur(flat, (3, 3), borderType=cv2.BORDER_REFLECT)[0, 0])
+# the next ones use edges.png / noisy.png, next to this script's image
+import os
+folder = os.path.dirname(os.path.abspath(path))
+clean = cv2.imread(os.path.join(folder, "edges.png"), cv2.IMREAD_GRAYSCALE)
+noisy = cv2.imread(os.path.join(folder, "noisy.png"), cv2.IMREAD_GRAYSCALE)
+print([round(cv2.absdiff(cv2.blur(noisy, (k, k)), clean).mean(), 2) for k in (3, 5, 7, 9)])
+print([round(cv2.absdiff(cv2.GaussianBlur(noisy, (0, 0), s), clean).mean(), 2) for s in (1, 1.5, 2, 3)])
+gx = cv2.Sobel(clean, cv2.CV_32F, 1, 0)
+gy = cv2.Sobel(clean, cv2.CV_32F, 0, 1)
+v, h = cv2.convertScaleAbs(gx), cv2.convertScaleAbs(gy)
+print(v[60, 20], h[60, 20], v[20, 60], h[20, 60])
+print(np.count_nonzero(cv2.Sobel(clean, cv2.CV_8U, 1, 0)), np.count_nonzero(v))

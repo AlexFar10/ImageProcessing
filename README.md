@@ -20,8 +20,8 @@ color.html            2. Color and grayscale (lab 3)
 quantization.html     3. Quantization and dithering (lab 3)
 histograms.html       4. Histograms
 binarization.html     5. Binarization (lab: histograms and binarization)
-kernel.html           6. Kernel and blur (lab 5: spatial filtering)
-edges.html            7. Edges and sharpening (lab 5: spatial filtering)
+spatial.html          6. Spatial filtering (lab 5): tabs Kernel, Borders, Blur, Edges, 8-bit trap, Sharpening
+kernel.html, edges.html  old addresses, they only redirect to spatial.html
 glossary.html         Glossary (built from js/glossary-data.js)
 
 css/style.css         all styles; light and dark colors are variables at the top
@@ -30,12 +30,12 @@ js/games.js           the 7 reusable game types
 js/glossary-data.js   every term: short text for the pop-up, page where it is explained
 js/test-image.js      landscape.png as text (generated, do not edit)
 js/filter-images.js   noisy.png and edges.png as text (generated, do not edit)
-js/filter.js          spatial filtering shared by sections 6-7: correlation, borders, box, Gaussian, Sobel
-js/diagram.js         helpers that draw the SVG illustrations of sections 6-7
+js/filter.js          spatial filtering for section 6: correlation, borders, box, Gaussian, Sobel
+js/diagram.js         helpers that draw the SVG illustrations of section 6
 js/pages/*.js         the demos and games of each section
 
 images/landscape.png  the test image used by the site and the Python exercises
-images/noisy.png      landscape.png in gray + Gaussian noise (sigma 20)
+images/noisy.png      edges.png + Gaussian noise (sigma 45)
 images/edges.png      sharp shapes, thin lines and text, for edge detection
 tools/make_test_image.py   draws landscape.png and regenerates js/test-image.js
 tools/make_filter_images.py makes noisy.png and edges.png and regenerates js/filter-images.js
@@ -69,7 +69,7 @@ tools/check_expected.py    prints what every exercise solution prints (to check 
 - **After changing a .js or .css file**, raise the `?v=…` number in the `<script>` / `<link>` tags of every page
   (e.g. `sed -i '' 's/?v=20261031/?v=20261101/g' *.html`). Otherwise browsers may keep the old file for up to 10 minutes.
 
-- **Look:** light theme only, four colors (text, muted gray, blue accent, red for mistakes), set at the top of `css/style.css`. Every topic page has four `<section class="part">` blocks (Theory, Demo, Code, Quick questions; Binarization has no Code part, Kernel and blur and Edges and sharpening have no Quick questions); `buildLayout()` in `js/core.js` turns them into tabs and sidebar links.
+- **Look:** light theme only, four colors (text, muted gray, blue accent, red for mistakes), set at the top of `css/style.css`. Every topic page has `<section class="part">` blocks (usually Theory, Demo, Code, Quick questions; Binarization has no Code part; Spatial filtering has six topic tabs, each with story, drawing, demo, exercise and one question); `buildLayout()` in `js/core.js` turns them into tabs and sidebar links.
 - **Text** is plain HTML in each page. Underline a glossary word with
   `<span class="term" data-term="pixel">pixels</span>`; the id must exist in `js/glossary-data.js`.
 - **New glossary term:** add an entry to `js/glossary-data.js`; the glossary page and pop-ups update by themselves.

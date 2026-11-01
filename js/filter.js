@@ -161,12 +161,16 @@ Filter.onFrame = function (fn) {
 Filter.extra = {};   // name -> gray image, filled once the two PNGs are decoded
 var extraReady = [];
 (function load() {
-  var names = { edges: EDGES_IMAGE_DATA_URL, noisy: NOISY_IMAGE_DATA_URL };
+  var names = { edges: EDGES_IMAGE_DATA_URL, noisy: NOISY_IMAGE_DATA_URL }, colors = {};
   Promise.all(Object.keys(names).map(function (name) {
     return IP.decode(names[name]).then(function (bmp) {
-      Filter.extra[name] = IP.toGray(IP.readPixels(bmp, bmp.width, bmp.height));
+      colors[name] = IP.readPixels(bmp, bmp.width, bmp.height);
+      Filter.extra[name] = IP.toGray(colors[name]);
     });
-  })).then(function () { var waiting = extraReady; extraReady = null; waiting.forEach(function (fn) { fn(); }); });
+  })).then(function () {
+    Object.keys(names).forEach(function (name) { IP.addSource(name, name + '.png', colors[name]); });   // offered in the image bar too
+    var waiting = extraReady; extraReady = null; waiting.forEach(function (fn) { fn(); });
+  });
 })();
 
 // Run fn when the test image AND the two extra images are ready

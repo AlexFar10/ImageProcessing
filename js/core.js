@@ -25,8 +25,7 @@ IP.SECTIONS = [
   { id: 'quantization', file: 'quantization.html', short: 'Quantization', title: 'Quantization and dithering' },
   { id: 'histograms', file: 'histograms.html', short: 'Histograms', title: 'Histograms' },
   { id: 'binarization', file: 'binarization.html', short: 'Binarization', title: 'Binarization' },
-  { id: 'kernel', file: 'kernel.html', short: 'Kernel & blur', title: 'Kernel and blur' },
-  { id: 'edges', file: 'edges.html', short: 'Edges & sharpening', title: 'Edges and sharpening' },
+  { id: 'spatial', file: 'spatial.html', short: 'Spatial filtering', title: 'Spatial filtering' },
   { id: 'glossary', file: 'glossary.html', short: 'Glossary', title: 'Glossary' }
 ];
 
@@ -113,7 +112,8 @@ function buildTabs(parts) {
 IP.MAX_PHOTO_SIDE = 480;   // photos are shrunk to this size so every demo stays fast
 IP.testColor = null;       // the test image, always loaded
 IP.photoColor = null;      // the student's photo (already shrunk), or null
-IP.source = 'test';        // which one the demos use: 'test' or 'photo'
+IP.source = 'test';        // which one the demos use: 'test', 'photo' or an extra image's id
+IP.extraSources = {};      // extra images a page offers in its image bar: id -> { label, color }
 
 var changeListeners = [];
 var readyListeners = [];
@@ -129,9 +129,15 @@ function emitChange() {
   renderImageBar();
 }
 
-IP.color = function () { return IP.source === 'photo' && IP.photoColor ? IP.photoColor : IP.testColor; };
+IP.color = function () {
+  if (IP.extraSources[IP.source]) return IP.extraSources[IP.source].color;
+  return IP.source === 'photo' && IP.photoColor ? IP.photoColor : IP.testColor;
+};
 IP.gray = function () { return IP.grayOf(IP.color()); };
-IP.fileName = function () { return IP.source === 'photo' && IP.photoColor ? 'my_photo.png' : 'landscape.png'; };
+IP.fileName = function () {
+  if (IP.extraSources[IP.source]) return IP.extraSources[IP.source].label;
+  return IP.source === 'photo' && IP.photoColor ? 'my_photo.png' : 'landscape.png';
+};
 
 var grayCache = new WeakMap();
 IP.grayOf = function (color) {
@@ -169,6 +175,12 @@ function decode(blobOrUrl) {
     });
 }
 
+// A page can offer more images in its image bar (the filtering page adds edges.png and noisy.png).
+IP.addSource = function (id, label, color) {
+  IP.extraSources[id] = { label: label, color: color };
+  if (isReady) renderImageBar();
+};
+
 IP.decode = decode;           // used by filter.js for its extra images
 IP.readPixels = readPixels;
 
@@ -186,7 +198,7 @@ IP.loadPhoto = function (file) {
 };
 
 IP.useSource = function (source) {
-  IP.source = source === 'photo' && IP.photoColor ? 'photo' : 'test';
+  IP.source = IP.extraSources[source] ? source : source === 'photo' && IP.photoColor ? 'photo' : 'test';
   IP.store.set('sessionStorage', 'ip-source', IP.source);
   emitChange();
 };
@@ -224,7 +236,9 @@ function renderImageBar() {
   fileInput.onchange = function () { if (fileInput.files[0]) IP.loadPhoto(fileInput.files[0]); };
   var loadBtn = IP.el('span', { class: 'btn secondary file-btn' }, 'Load photo', fileInput);
   var c = IP.color();
-  bar.append(testBtn, photoBtn, loadBtn);
+  bar.append(testBtn);
+  Object.keys(IP.extraSources).forEach(function (id) { bar.append(IP.el('label', {}, radio(id), ' ' + IP.extraSources[id].label)); });
+  bar.append(photoBtn, loadBtn);
   if (IP.photoColor) {
     bar.append(IP.el('button', { class: 'btn secondary', onclick: IP.downloadPhoto, text: 'Save as PNG', title: 'The exact pixels used here, for your Python script' }));
   }
