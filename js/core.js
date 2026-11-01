@@ -101,7 +101,12 @@ function buildTabs(parts) {
       a.classList.toggle('active', a.getAttribute('href') === '#' + id);
     });
   }
-  window.addEventListener('hashchange', function () { show(); window.scrollTo(0, 0); });
+  // After a tab click, go back to the top, or to the tab bar when there is a long introduction above it
+  window.addEventListener('hashchange', function () {
+    show();
+    var barTop = bar.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo(0, barTop > 600 ? barTop - 12 : 0);
+  });
   show();
 }
 

@@ -1,5 +1,5 @@
-// Section 6: spatial filtering. Five topic tabs: kernel, borders, blur, edges, sharpening.
-// Each tab: story, illustration (SVG from diagram.js), demo, exercise. The filtering itself is in filter.js.
+// Section 6: spatial filtering. On top: the kernel idea and the step-by-step demo (every filter of the page).
+// Then four topic tabs: borders, blur, edges, sharpening. Each tab: story, illustration, demo, exercise. The filtering itself is in filter.js.
 
 var D = Diagram;
 function blue(v) { return { fill: D.pixel(v), text: String(v) }; }
@@ -15,17 +15,11 @@ function put(id, svg) { document.getElementById(id).innerHTML = svg; }
    1. Kernel
    ===================================================================== */
 
-// Three recipes on the neighbours 10 10 200, plus the difference recipe on a flat area
-(function () {
+// Recipes on the neighbours of one pixel: neighbours x kernel = new value (used by the Blur and Edges tabs)
+function recipes(id, list, label) {
   var s = 40, out = '';
-  var recipes = [
-    ['box', [10, 10, 200], ['1/3', '1/3', '1/3'], '73.3'],
-    ['centre counts more', [10, 10, 200], ['1/4', '2/4', '1/4'], '57.5'],
-    ['difference', [10, 10, 200], ['-1', '0', '1'], '190'],
-    ['difference, flat area', [10, 10, 10], ['-1', '0', '1'], '0']
-  ];
-  out += D.text(170 + 1.5 * s, 18, 'neighbours', { size: 11 }) + D.text(330 + 1.5 * s, 18, 'kernel', { size: 11 }) + D.text(500, 18, 'new value', { size: 11 });
-  recipes.forEach(function (r, i) {
+  out += D.text(170 + 1.5 * s, 18, 'neighbours', { size: 11 }) + D.text(330 + 1.5 * s, 18, 'kernel', { size: 11 }) + D.text(504, 18, 'new value', { size: 11 });
+  list.forEach(function (r, i) {
     var y = 28 + i * 54;
     out += D.text(160, y + 25, r[0], { anchor: 'end' });
     out += strip(170, y, s, r[1], function (v) { return blue(v); }) + D.window(170, y, s, 0, 1, 1);
@@ -34,9 +28,9 @@ function put(id, svg) { document.getElementById(id).innerHTML = svg; }
     out += D.text(465, y + 25, '=', { size: 16 });
     out += D.cell(482, y, 44, green(r[3]));
   });
-  out += D.text(280, 250, 'the black frame is you: the middle pixel', { size: 11 });
-  put('d-recipes', D.svg(560, 262, out, 'Three kernels on the neighbours 10 10 200 give 73.3, 57.5 and 190; the difference kernel gives 0 on a flat area'));
-})();
+  out += D.text(280, 40 + list.length * 54, 'the black frame is you: the middle pixel', { size: 11 });
+  put(id, D.svg(560, 52 + list.length * 54, out, label));
+}
 
 // The 5-step picture: a 3x3 window slides over a 5x5 image
 (function () {
@@ -87,15 +81,18 @@ function put(id, svg) { document.getElementById(id).innerHTML = svg; }
     [10, 200, 10, 10, 10, 200, 200, 200, 200],
     [10, 10, 10, 10, 10, 200, 200, 200, 200],
     [10, 10, 10, 10, 10, 200, 200, 200, 200],
-    [10, 10, 10, 10, 10, 200, 200, 10, 200],
-    [10, 10, 10, 10, 10, 200, 200, 200, 200]
+    [200, 200, 200, 200, 200, 200, 200, 10, 200],
+    [200, 200, 200, 200, 200, 200, 200, 200, 200]
   ];
   var H = IMG.length, W = IMG[0].length;
   var KERNELS = {
-    box: { label: 'blur (box)', effect: 'Blur: every pixel becomes the average of its 9 neighbours. The single dots fade, the edge gets softer.' },
-    identity: { label: 'keep as is', effect: 'Keep as is: only the middle coefficient is 1, so every pixel keeps its own value.' },
-    sobelX: { label: 'find vertical edges', effect: 'Find vertical edges: right column minus left column. Flat areas give 0, the edge from dark to bright lights up. (Values below 0 are stored as 0, like cv2.filter2D does on uint8.)' },
-    sharpen: { label: 'sharpen', effect: 'Sharpen: 5 × you minus your 4 neighbours. Flat areas stay the same, the edge and the dots get stronger.' }
+    box: { label: 'blur: box', effect: 'Box blur: every pixel becomes the average of its 9 neighbours. The single dots fade, the edges get softer.' },
+    gaussian: { label: 'blur: Gaussian', effect: 'Gaussian blur: the middle counts 4/16, the sides 2/16, the corners 1/16. A softer blur that keeps more of each pixel.' },
+    sobelX: { label: 'vertical edges (Sobel dx)', effect: 'Vertical edges: right column minus left column. Flat areas give 0, the vertical edge from dark to bright lights up; the horizontal edge gives 0. (Values below 0 are stored as 0, like cv2.filter2D does on uint8.)' },
+    sobelY: { label: 'horizontal edges (Sobel dy)', effect: 'Horizontal edges: bottom row minus top row. The bottom edge (dark above, bright below) lights up; the vertical edge gives 0. (Values below 0 are stored as 0.)' },
+    laplacian: { label: 'Laplacian', effect: 'Laplacian: 4 neighbours minus 4 × you. Flat areas give 0; the edges and the dots light up.' },
+    sharpen: { label: 'sharpen (original − Laplacian)', effect: 'Sharpen: 5 × you minus your 4 neighbours. Flat areas stay the same, the edges and the dots get stronger.' },
+    identity: { label: 'keep as is', effect: 'Keep as is: only the middle coefficient is 1, so every pixel keeps its own value.' }
   };
   var sel = document.getElementById('ks-kernel');
   Object.keys(KERNELS).forEach(function (key) { sel.appendChild(IP.el('option', { value: key, text: KERNELS[key].label })); });
@@ -276,6 +273,11 @@ function put(id, svg) { document.getElementById(id).innerHTML = svg; }
    3. Blur
    ===================================================================== */
 
+recipes('d-recipes-blur', [
+  ['box', [10, 10, 200], ['1/3', '1/3', '1/3'], '73.3'],
+  ['centre counts more', [10, 10, 200], ['1/4', '2/4', '1/4'], '57.5']
+], 'A box kernel gives 73.3, a kernel where the centre counts more gives 57.5');
+
 // Bars: how much you listen to each of 7 neighbours, box vs Gaussian
 function bars(x, y, weights, title) {
   var out = D.text(x + 3.5 * 34, y - 12, title, { bold: true }), max = Math.max.apply(null, weights), h = 110;
@@ -343,14 +345,10 @@ put('d-bars', D.svg(560, 200, bars(20, 44, Filter.box1D(7), 'box: everyone the s
    4. Edges
    ===================================================================== */
 
-// Differences between neighbours on one row
-(function () {
-  var s = 40, x0 = 120, out = '';
-  out += D.text(x0 - 12, 44, 'row', { anchor: 'end' }) + strip(x0, 20, s, [10, 10, 10, 200, 200, 200], function (v) { return blue(v); });
-  out += D.text(x0 - 12, 104, 'right − left', { anchor: 'end' }) + strip(x0 + s / 2, 80, s, [0, 0, 190, 0, 0], green);
-  out += D.text(x0 + 3 * s, 146, 'flat areas give 0, the edge gives 190', { size: 11 });
-  put('d-diff', D.svg(400, 158, out, 'Differences of 10 10 10 200 200 200 are 0 0 190 0 0'));
-})();
+recipes('d-recipes-edges', [
+  ['difference', [10, 10, 200], ['-1', '0', '1'], '190'],
+  ['difference, flat area', [10, 10, 10], ['-1', '0', '1'], '0']
+], 'The difference kernel gives 190 on an edge and 0 on a flat area');
 
 // Sobel on a 3x3 window
 (function () {
@@ -465,23 +463,6 @@ put('d-bars', D.svg(560, 200, bars(20, 44, Filter.box1D(7), 'box: everyone the s
    Exercises: code with dropdowns (one per tab)
    ===================================================================== */
 var READ_GRAY = 'gray = cv2.cvtColor(cv2.imread("landscape.png"), cv2.COLOR_BGR2GRAY)\n';
-
-Games.fillBlanks(document.getElementById('ex-kernel'), {
-  title: 'Exercise: two kernels of your own',
-  task: 'Fill in a kernel that leaves the image unchanged and one that blurs it, so that the print says <code>True</code>.',
-  parts: [
-    READ_GRAY + 'same = np.array([[0, 0, 0], [0, ', { answer: '1', options: ['0', '1', '9'], hint: 'To change nothing, listen only to yourself: the middle coefficient is 1, all others 0.' },
-    ', 0], [0, 0, 0]], np.float32)\nblur = np.ones((3, 3), np.float32) / ', { answer: '9', options: ['1', '3', '9'], hint: 'All 9 neighbours count the same and the sum must stay 1: each one is 1/9.' },
-    '\nout = cv2.', { answer: 'filter2D', options: ['filter2D', 'threshold', 'Sobel'], hint: 'filter2D slides any kernel you give it over the image.' },
-    '(gray, -1, blur)\nprint(np.array_equal(out, cv2.blur(gray, ', { answer: '(3, 3)', options: ['(1, 1)', '(3, 3)', '(9, 9)'], hint: 'Your kernel is 3 × 3, so compare with a 3 × 3 box.' },
-    ')))   # True'
-  ],
-  explain: 'The middle 1 keeps every pixel as it is; nine coefficients of 1/9 average the window, exactly like cv2.blur with a 3 × 3 box.',
-  onCorrect: function (out) {
-    var f = Filter.fromGray(IP.gray());
-    out.append(IP.el('div', { class: 'grid-2' }, IP.figure(IP.gray(), 'same: unchanged'), IP.figure(Filter.toGray(Filter.box(f, 3, 'reflect')), 'out: blurred')));
-  }
-});
 
 Games.fillBlanks(document.getElementById('ex-borders'), {
   title: 'Exercise: the wrong corner',

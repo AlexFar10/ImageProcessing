@@ -304,3 +304,4 @@ canvas.clickable { cursor: crosshair; }
 .tools th { color: var(--muted); font-weight: 600; font-size: .8rem; }
 canvas.bars { width: 100%; max-width: 760px; border: 1px solid var(--border); border-radius: 8px; margin: .6rem 0; }
 .part > .exercise, .part > .quiz { margin-top: 1.6rem; }
+.intro { margin-bottom: 2.4rem; }

@@ -4,20 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Spatial filtering · Image Processing Lab</title>
-  <link rel="stylesheet" href="css/style.css?v=20261109">
+  <link rel="stylesheet" href="css/style.css?v=20261110">
 </head>
 <body data-page="spatial">
 <main>
   <h1>Spatial filtering</h1>
   <div id="image-bar"></div>
 
-  <!-- ============ 1. Kernel ============ -->
-  <section class="part" id="kernel" data-title="Kernel">
+  <!-- ============ The kernel: the idea behind every filter on this page ============ -->
+  <div class="intro" id="kernel-intro">
+    <h2 style="margin-top:0">The kernel</h2>
     <p class="story">You are a pixel and you want a new value. The only way to get one is to ask your neighbours what they think.
       But not every opinion counts the same. The <span class="term" data-term="kernel">kernel</span> is the list that says
       how much you listen to each neighbour. Its numbers are the <b>coefficients</b>.</p>
-    <p class="story">Three recipes on the neighbours <code>10 10 200</code> (you are the middle one):</p>
-    <div id="d-recipes"></div>
+    <p class="story">Every filter below is just a different list. The tabs show the recipes one by one.</p>
     <p class="tech">One line of math: new value = sum of (neighbour × coefficient). An image kernel does it on a 3 × 3 window:</p>
     <div id="d-kernel"></div>
     <div class="callout">
@@ -31,7 +31,7 @@
     </div>
 
     <h2>Demo: the kernel at work</h2>
-    <p class="look"><b>What to look for:</b> the black frame is the window. Each new pixel (green frame) is the sum of the 9 values under it, each times its coefficient.</p>
+    <p class="look"><b>What to look for:</b> pick a filter from the list. The black frame is the window. Each new pixel (green frame) is the sum of the 9 values under it, each times its coefficient.</p>
     <div class="controls">
       <label>Kernel <select id="ks-kernel"></select></label>
       <button class="btn" type="button" id="ks-step">Next pixel</button>
@@ -47,20 +47,9 @@
       <figure class="figure"><canvas id="ks-src"></canvas><figcaption>your image</figcaption></figure>
       <figure class="figure"><canvas id="ks-dst"></canvas><figcaption id="ks-dst-cap"></figcaption></figure>
     </div>
+  </div>
 
-    <div id="ex-kernel"></div>
-    <div class="quiz">
-      <p class="q">Every coefficient of a 3 × 3 kernel is 1/9. The filter…</p>
-      <div class="choices">
-        <button type="button" data-correct>blurs the image</button>
-        <button type="button">finds edges</button>
-        <button type="button">does nothing</button>
-      </div>
-      <p class="explain" hidden>Each pixel becomes the average of its 9 neighbours, so details are smoothed out.</p>
-    </div>
-  </section>
-
-  <!-- ============ 2. Borders ============ -->
+  <!-- ============ 1. Borders ============ -->
   <section class="part" id="borders" data-title="Borders">
     <p class="story">You are a pixel on the edge of the image. Some of your neighbours do not exist, but the kernel still needs 9 values.
       So you invent them: this is <span class="term" data-term="padding">padding</span>. Four ways, on the row <code>10 20 30 40 50</code>
@@ -95,7 +84,7 @@
     </div>
   </section>
 
-  <!-- ============ 3. Blur ============ -->
+  <!-- ============ 2. Blur ============ -->
   <section class="part" id="blur" data-title="Blur">
     <p class="story">A <span class="term" data-term="box-filter">box</span> filter listens to every neighbour the same.
       A <span class="term" data-term="gaussian-filter">Gaussian</span> filter listens more to the close ones, and less and less to the far ones.
@@ -103,6 +92,7 @@
     <p class="story">With a box you choose the size. With a Gaussian you choose <span class="term" data-term="sigma">σ</span>: how far you still listen.
       For the same blur a Gaussian needs a bigger kernel (lecture: box 71 × 71 vs Gaussian 151 × 151, σ = 25).</p>
     <p class="tech">Gaussian kernel size ≈ 6σ + 1. Both filters are separable: one pass along the rows, one along the columns.</p>
+    <div id="d-recipes-blur"></div>
     <div id="d-bars"></div>
 
     <h2>Demo: box or Gaussian</h2>
@@ -131,11 +121,11 @@
     </div>
   </section>
 
-  <!-- ============ 4. Edges ============ -->
+  <!-- ============ 3. Edges ============ -->
   <section class="part" id="edges" data-title="Edges">
     <p class="story">To find an edge, ask your neighbours: "is the right side different from the left side?"
       The recipe <code>-1 0 1</code> (right minus left) gives 0 on a flat area and a big number on an edge:</p>
-    <div id="d-diff"></div>
+    <div id="d-recipes-edges"></div>
     <p class="story"><span class="term" data-term="sobel">Sobel</span> does the same on three rows at once, and the middle row counts double.
       One kernel finds vertical edges, another finds horizontal ones. To know how strong an edge is whatever its direction, combine them like a walk:
       3 m east and 4 m north is 5 m away. That is the <span class="term" data-term="magnitude">magnitude</span> of the <span class="term" data-term="gradient">gradient</span>. Do not just add them: the signs can cancel.</p>
@@ -169,7 +159,7 @@
     </div>
   </section>
 
-  <!-- ============ 5. Sharpening ============ -->
+  <!-- ============ 4. Sharpening ============ -->
   <section class="part" id="sharpening" data-title="Sharpening">
     <p class="story"><span class="term" data-term="sharpening">Sharpening</span> makes an image look clearer: find the edges and push them apart,
       so the dark side of each edge gets darker and the bright side brighter.</p>
@@ -208,13 +198,13 @@
     </div>
   </section>
 </main>
-<script src="js/test-image.js?v=20261109"></script>
-<script src="js/filter-images.js?v=20261109"></script>
-<script src="js/glossary-data.js?v=20261109"></script>
-<script src="js/core.js?v=20261109"></script>
-<script src="js/games.js?v=20261109"></script>
-<script src="js/filter.js?v=20261109"></script>
-<script src="js/diagram.js?v=20261109"></script>
-<script src="js/pages/spatial.js?v=20261109"></script>
+<script src="js/test-image.js?v=20261110"></script>
+<script src="js/filter-images.js?v=20261110"></script>
+<script src="js/glossary-data.js?v=20261110"></script>
+<script src="js/core.js?v=20261110"></script>
+<script src="js/games.js?v=20261110"></script>
+<script src="js/filter.js?v=20261110"></script>
+<script src="js/diagram.js?v=20261110"></script>
+<script src="js/pages/spatial.js?v=20261110"></script>
 </body>
 </html>
