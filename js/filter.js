@@ -161,6 +161,7 @@ Filter.onFrame = function (fn) {
 Filter.extra = {};   // name -> gray image, filled once the two PNGs are decoded
 var extraReady = [];
 (function load() {
+  if (typeof EDGES_IMAGE_DATA_URL === 'undefined') { extraReady = null; return; }   // a page without these images
   var names = { edges: EDGES_IMAGE_DATA_URL, noisy: NOISY_IMAGE_DATA_URL }, colors = {};
   Promise.all(Object.keys(names).map(function (name) {
     return IP.decode(names[name]).then(function (bmp) {

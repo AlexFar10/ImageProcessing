@@ -26,6 +26,7 @@ IP.SECTIONS = [
   { id: 'histograms', file: 'histograms.html', short: 'Histograms', title: 'Histograms' },
   { id: 'binarization', file: 'binarization.html', short: 'Binarization', title: 'Binarization' },
   { id: 'spatial', file: 'spatial.html', short: 'Spatial filtering', title: 'Spatial filtering' },
+  { id: 'frequency', file: 'frequency.html', short: 'Frequency filtering', title: 'Frequency filtering' },
   { id: 'glossary', file: 'glossary.html', short: 'Glossary', title: 'Glossary' }
 ];
 

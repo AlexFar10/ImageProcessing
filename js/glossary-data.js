@@ -3,6 +3,22 @@
 // where: the page (and part of it) where the term is explained.
 
 var GLOSSARY = {
+  'frequency': { term: 'Frequency', where: 'frequency.html',
+    short: 'How many times a pattern repeats across the image. Smooth areas: low frequency; edges, texture and noise: high frequency.' },
+  'spectrum': { term: 'Spectrum', where: 'frequency.html',
+    short: 'The grid that says how much of each layer (each frequency) is in the image. Middle: slow layers; far out: fast ones.' },
+  'fourier-transform': { term: 'Fourier transform', where: 'frequency.html',
+    short: 'Turns an image into its spectrum by multiplying it with every layer and adding (np.fft.fft2, cv2.dft). The inverse transform gives the image back.' },
+  'frequency-mask': { term: 'Mask (frequency filter)', where: 'frequency.html',
+    short: 'One number per frequency, multiplied with the spectrum: 1 keeps that layer, 0 deletes it.' },
+  'lowpass': { term: 'Lowpass filter', where: 'frequency.html#lowpass',
+    short: 'Keeps the middle of the spectrum (slow layers) and deletes the rest: a blur that removes noise.' },
+  'highpass': { term: 'Highpass filter', where: 'frequency.html#highpass',
+    short: 'Deletes the middle of the spectrum and keeps the fast layers: the edges. Its mask is 1 − the lowpass mask.' },
+  'cutoff': { term: 'Cutoff frequency (D0)', where: 'frequency.html#lowpass',
+    short: 'How far from the middle of the spectrum a lowpass still keeps layers (or a highpass starts keeping them).' },
+  'notch-filter': { term: 'Notch filter', where: 'frequency.html#stripes',
+    short: 'A mask that deletes only a few small spots of the spectrum, for example the two dots made by stripes.' },
   'border-mode': { term: 'Border mode', where: 'spatial.html#borders',
     short: 'How OpenCV invents the pixels outside the image: BORDER_CONSTANT (zeros), BORDER_REPLICATE, BORDER_REFLECT, BORDER_REFLECT_101 (the default).' },
   'magnitude': { term: 'Magnitude', where: 'spatial.html#edges',

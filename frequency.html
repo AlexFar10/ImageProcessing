@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Frequency filtering · Image Processing Lab</title>
+  <link rel="stylesheet" href="css/style.css?v=20261113">
+</head>
+<body data-page="frequency">
+<main>
+  <h1>Frequency filtering</h1>
+  <div id="image-bar"></div>
+
+  <!-- ============ Layers and the spectrum: the idea behind every filter on this page ============ -->
+  <div class="intro" id="spectrum-intro">
+    <h2 style="margin-top:0">Layers and the spectrum</h2>
+    <p class="story">Last lab, a kernel slid over the pixels to blur or to find edges. This lab does the same jobs a second way:
+      through <span class="term" data-term="frequency">frequencies</span>.</p>
+    <p class="story">A frequency is how many times a pattern repeats. Smooth areas change slowly: low frequency.
+      Edges, fine texture and noise change fast: high frequency.</p>
+    <p class="story">A row of pixels is a sum of <b>layers</b>. A layer is a simple pattern that repeats. Add the layers pixel by pixel and you get the row:</p>
+    <div id="d-row-layers"></div>
+    <p class="story">Delete the fast layer and the row becomes <code>150 100 50 100</code>: smoother. That is a blur.
+      An image works the same way: every layer covers the whole image, and each pixel adds one piece from each layer.</p>
+    <div id="d-image-layers"></div>
+    <p class="story">To find out how much of a layer is in the image: multiply the image by the layer and add everything.
+      A big total: the layer is there. A total of 0: it is not. Do it for every possible layer and you get a grid of numbers, the
+      <span class="term" data-term="spectrum">spectrum</span>:</p>
+    <div id="d-spectrum"></div>
+    <p class="tech">This multiply-and-add for every layer is the <span class="term" data-term="fourier-transform">Fourier transform</span>
+      (<code>np.fft.fft2</code> or <code>cv2.dft</code>). The inverse transform adds the layers back: nothing is lost.</p>
+
+    <h2>Demo: your image and its spectrum</h2>
+    <p class="look"><b>What to look for:</b> pick the sign images in the image bar. The middle of the spectrum holds the slow layers;
+      the farther from the middle, the faster the layer. The direction from the middle is the direction of the change. Bright means a lot of that layer.</p>
+    <div class="grid-2">
+      <figure class="figure"><canvas id="sp-src"></canvas><figcaption>your image</figcaption></figure>
+      <figure class="figure"><canvas id="sp-spec" class="spectrum"></canvas><figcaption>its spectrum (centered, log scale)</figcaption></figure>
+    </div>
+    <p class="live" id="sp-live"></p>
+
+    <h2>A filter is a mask</h2>
+    <p class="story">To filter, multiply the spectrum by a <span class="term" data-term="frequency-mask">mask</span>: 1 keeps a layer, 0 deletes it.
+      Then go back with the inverse transform. The five steps are always the same; only the mask changes from filter to filter.</p>
+    <div id="d-pipeline"></div>
+    <div class="callout">
+      <b>Good to know: kernel or frequency?</b>
+      Sliding a kernel in the image is the same as multiplying by a mask in the spectrum (the lecture: convolution in space = multiplication in frequency).
+      A small kernel is cheaper; a big filter, or a pattern that repeats, is easier in frequency.
+      <div class="table-scroll"><table class="tools">
+        <thead><tr><th></th><th>kernel (space)</th><th>mask (frequency)</th></tr></thead>
+        <tbody>
+          <tr><td>works with</td><td>pixels</td><td>layers (the spectrum)</td></tr>
+          <tr><td>blur</td><td>box or Gaussian kernel</td><td>delete the fast layers (lowpass)</td></tr>
+          <tr><td>edges</td><td>Sobel, Laplacian</td><td>keep the fast layers (highpass)</td></tr>
+          <tr><td>stripes</td><td>hard</td><td>delete two dots (notch)</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ============ 1. Lowpass ============ -->
+  <section class="part" id="lowpass" data-title="Lowpass">
+    <p class="story">Noise is a fast change from one pixel to the next, so it lives far from the middle of the spectrum.
+      Keep the middle and delete the rest: the noise goes. This is a <span class="term" data-term="lowpass">lowpass</span> filter, a blur.
+      The <span class="term" data-term="cutoff">cutoff D0</span> is how far from the middle you still keep.</p>
+    <p class="story">The mask can stop sharply or softly. <b>Ideal</b>: 1 inside a circle, 0 outside (sharp cut, it leaves ripples near edges).
+      <b>Gaussian</b>: a soft bell. <b>Butterworth</b>: in between; its order n sets how sharp the step is.</p>
+    <p class="tech">Ideal: 1 if D ≤ D0, else 0 · Gaussian: e<sup>−D²/2D0²</sup> · Butterworth: 1 / (1 + (D/D0)<sup>2n</sup>), D = distance to the middle.</p>
+    <div id="d-masks"></div>
+
+    <h2>Demo: lowpass</h2>
+    <p class="look"><b>What to look for:</b> choose sign_noisy.png in the image bar. Make D0 small: the noise goes, then the letters blur too.
+      Compare the ideal mask (ripples) with the Gaussian.</p>
+    <div class="controls">
+      <label><input type="radio" name="lp-kind" value="gaussian" checked> Gaussian</label>
+      <label><input type="radio" name="lp-kind" value="ideal"> ideal</label>
+      <label><input type="radio" name="lp-kind" value="butterworth"> Butterworth (n = 2)</label>
+      <label>how much of the middle to keep (D0) <input type="range" id="lp-d0" min="5" max="120" value="30"> <b id="lp-d0-val"></b></label>
+    </div>
+    <div class="grid-3">
+      <figure class="figure"><canvas id="lp-src"></canvas><figcaption>your image</figcaption></figure>
+      <figure class="figure"><canvas id="lp-spec" class="spectrum"></canvas><figcaption>spectrum × mask</figcaption></figure>
+      <figure class="figure"><canvas id="lp-dst"></canvas><figcaption>the result</figcaption></figure>
+    </div>
+    <p class="live" id="lp-live"></p>
+    <div class="callout">
+      <b>Blur, two ways.</b> A Gaussian mask in the spectrum is a Gaussian kernel in the image (the lecture: a Gaussian stays a Gaussian).
+      On sign_noisy.png, scored against the clean sign (average difference, lower is better):
+      noisy 31.2 · <code>cv2.GaussianBlur(img, (0, 0), 1.5)</code> 9.4 · Gaussian mask, D0 = 30: 9.3.
+    </div>
+
+    <div id="ex-lowpass"></div>
+    <div class="quiz">
+      <p class="q">A lowpass mask keeps…</p>
+      <div class="choices">
+        <button type="button" data-correct>the middle of the spectrum (the slow layers)</button>
+        <button type="button">the outside of the spectrum (the fast layers)</button>
+        <button type="button">two dots</button>
+      </div>
+      <p class="explain" hidden>Slow layers sit near the middle; keeping only them removes the fast changes: noise, and also some detail.</p>
+    </div>
+  </section>
+
+  <!-- ============ 2. Highpass ============ -->
+  <section class="part" id="highpass" data-title="Highpass">
+    <p class="story">Now do the opposite: delete the middle and keep the outside. Only the fast changes stay: the edges.
+      This is a <span class="term" data-term="highpass">highpass</span> filter. Its mask is simply 1 minus the lowpass mask.</p>
+    <div id="d-highpass"></div>
+    <p class="story">The highpass is what the blur took away. Add it back to the image and the edges get stronger: sharpening, like unsharp masking in the last lab.</p>
+    <p class="tech">highpass = 1 − lowpass · edges = |result| · sharpened = image + result.</p>
+
+    <h2>Demo: highpass</h2>
+    <p class="look"><b>What to look for:</b> choose sign.png. With a small D0 the edges are thick; with a big D0 only the finest details stay.</p>
+    <div class="controls">
+      <label><input type="radio" name="hp-show" value="edges" checked> edges only</label>
+      <label><input type="radio" name="hp-show" value="sharp"> sharpen (image + edges)</label>
+      <label>how much of the middle to delete (D0) <input type="range" id="hp-d0" min="5" max="120" value="30"> <b id="hp-d0-val"></b></label>
+    </div>
+    <div class="grid-3">
+      <figure class="figure"><canvas id="hp-src"></canvas><figcaption>your image</figcaption></figure>
+      <figure class="figure"><canvas id="hp-spec" class="spectrum"></canvas><figcaption>spectrum × highpass mask</figcaption></figure>
+      <figure class="figure"><canvas id="hp-dst"></canvas><figcaption id="hp-cap"></figcaption></figure>
+    </div>
+    <p class="live" id="hp-live"></p>
+
+    <div id="ex-highpass"></div>
+    <div class="quiz">
+      <p class="q">The highpass mask is…</p>
+      <div class="choices">
+        <button type="button" data-correct>1 − the lowpass mask</button>
+        <button type="button">2 × the lowpass mask</button>
+        <button type="button">the lowpass mask − 1</button>
+      </div>
+      <p class="explain" hidden>Where the lowpass keeps (1), the highpass deletes (0), and the other way round.</p>
+    </div>
+  </section>
+
+  <!-- ============ 3. Stripes ============ -->
+  <section class="part" id="stripes" data-title="Stripes">
+    <p class="story">Stripes are one layer that repeats many times, all in one direction. In the spectrum they are just two bright dots.
+      A blur would blur everything. A mask that is 0 only on the two dots removes just the stripes: a
+      <span class="term" data-term="notch-filter">notch</span> filter.</p>
+    <p class="story">Where are the dots? The stripes on sign_stripes.png repeat every 8 pixels, so 320 / 8 = 40 times across the image:
+      the dots are 40 cells left and right of the middle.</p>
+    <div id="d-stripes"></div>
+    <p class="tech">mask = 1 everywhere, 0 in a small circle on each dot: <code>cv2.circle(mask, (w // 2 ± 40, h // 2), 3, 0, -1)</code>.</p>
+
+    <h2>Demo: remove the stripes</h2>
+    <p class="look"><b>What to look for:</b> the two dots in the spectrum, and what each choice does to the letters.</p>
+    <div class="controls">
+      <label><input type="radio" name="st-do" value="none" checked> do nothing</label>
+      <label><input type="radio" name="st-do" value="blur"> blur (lowpass, D0 = 30)</label>
+      <label><input type="radio" name="st-do" value="notch"> delete the two dots (notch)</label>
+    </div>
+    <div class="grid-3">
+      <figure class="figure"><canvas id="st-src"></canvas><figcaption>sign_stripes.png</figcaption></figure>
+      <figure class="figure"><canvas id="st-spec" class="spectrum"></canvas><figcaption>spectrum × mask</figcaption></figure>
+      <figure class="figure"><canvas id="st-dst"></canvas><figcaption>the result</figcaption></figure>
+    </div>
+    <p class="live" id="st-live"></p>
+
+    <div id="ex-notch"></div>
+    <div class="quiz">
+      <p class="q">Stripes that repeat 40 times across the image show up in the spectrum as…</p>
+      <div class="choices">
+        <button type="button" data-correct>two dots, 40 cells left and right of the middle</button>
+        <button type="button">a ring around the middle</button>
+        <button type="button">gray everywhere</button>
+      </div>
+      <p class="explain" hidden>One layer that repeats 40 times across: one frequency, 40 cells from the middle, mirrored on the other side.</p>
+    </div>
+  </section>
+
+  <!-- ============ 4. Fix the scan ============ -->
+  <section class="part" id="scan" data-title="Fix the scan">
+    <p class="story">Your turn. scan_damaged.png has both problems: stripes and noise. Look at its spectrum, then fix it in two moves:
+      delete the two dots for the stripes, then a lowpass for the noise. A score tells you how close you got to the clean sign (lower is better).</p>
+
+    <h2>Demo: fix it</h2>
+    <p class="look"><b>What to look for:</b> try each fix alone, then both. Watch the score.</p>
+    <div class="controls">
+      <label><input type="checkbox" id="sc-notch"> delete the two dots</label>
+      <label><input type="checkbox" id="sc-low"> lowpass</label>
+      <label id="sc-d0-label">D0 <input type="range" id="sc-d0" min="10" max="100" value="30"> <b id="sc-d0-val"></b></label>
+    </div>
+    <div class="grid-3">
+      <figure class="figure"><canvas id="sc-src"></canvas><figcaption>scan_damaged.png</figcaption></figure>
+      <figure class="figure"><canvas id="sc-spec" class="spectrum"></canvas><figcaption>spectrum × mask</figcaption></figure>
+      <figure class="figure"><canvas id="sc-dst"></canvas><figcaption>the result</figcaption></figure>
+    </div>
+    <p class="live" id="sc-live"></p>
+
+    <div id="ex-scan"></div>
+    <div class="quiz">
+      <p class="q">Why not just blur the stripes away?</p>
+      <div class="choices">
+        <button type="button" data-correct>a blur strong enough for the stripes also blurs the letters</button>
+        <button type="button">a blur makes the stripes stronger</button>
+        <button type="button">a blur cannot be done in the frequency domain</button>
+      </div>
+      <p class="explain" hidden>The notch deletes only the stripes' frequency; a blur deletes every fast layer, letters' edges included.</p>
+    </div>
+  </section>
+</main>
+<script src="js/test-image.js?v=20261113"></script>
+<script src="js/frequency-images.js?v=20261113"></script>
+<script src="js/glossary-data.js?v=20261113"></script>
+<script src="js/core.js?v=20261113"></script>
+<script src="js/games.js?v=20261113"></script>
+<script src="js/filter.js?v=20261113"></script>
+<script src="js/fft.js?v=20261113"></script>
+<script src="js/diagram.js?v=20261113"></script>
+<script src="js/pages/frequency.js?v=20261113"></script>
+</body>
+</html>

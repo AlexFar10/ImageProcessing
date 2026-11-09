@@ -20,7 +20,7 @@ Diagram.pixel = function (v) {
 
 // The <svg> with its own white background; it scales with the page width
 Diagram.svg = function (w, h, body, label) {
-  return '<svg class="diagram-svg" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + (label || '') +
+  return '<svg class="diagram-svg" viewBox="0 0 ' + w + ' ' + h + '" style="max-width:' + w + 'px" role="img" aria-label="' + (label || '') +
     '" font-family="system-ui, -apple-system, Segoe UI, sans-serif"><rect width="' + w + '" height="' + h + '" fill="#fff"/>' + body + '</svg>';
 };
 

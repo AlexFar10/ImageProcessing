@@ -1,7 +1,7 @@
 # Image Processing Lab – interactive site
 
 A small website for the Image Processing lab (2nd year). Students learn the first labs, histograms
-binarization and spatial filtering by playing with images and Python/OpenCV code.
+binarization spatial and frequency filtering by playing with images and Python/OpenCV code.
 
 Plain HTML, CSS and JavaScript. No frameworks, no build step, no server, no external libraries,
 no tracking. It works on GitHub Pages and when `index.html` is opened straight from the folder.
@@ -22,6 +22,7 @@ histograms.html       4. Histograms
 binarization.html     5. Binarization (lab: histograms and binarization)
 spatial.html          6. Spatial filtering (lab 5): the kernel and a step-by-step demo on top, then tabs Borders, Blur, Edges, Sharpening
 kernel.html, edges.html  old addresses, they only redirect to spatial.html
+frequency.html        7. Frequency filtering (lab 6): layers and the spectrum on top, then tabs Lowpass, Highpass, Stripes, Fix the scan
 glossary.html         Glossary (built from js/glossary-data.js)
 
 css/style.css         all styles; light and dark colors are variables at the top
@@ -31,7 +32,9 @@ js/glossary-data.js   every term: short text for the pop-up, page where it is ex
 js/test-image.js      landscape.png as text (generated, do not edit)
 js/filter-images.js   noisy.png and edges.png as text (generated, do not edit)
 js/filter.js          spatial filtering for section 6: correlation, borders, box, Gaussian, Sobel
-js/diagram.js         helpers that draw the SVG illustrations of section 6
+js/diagram.js         helpers that draw the SVG illustrations of sections 6-7
+js/fft.js             the Fourier transform (any image size), masks, spectrum pictures for section 7
+js/frequency-images.js the sign images as text (generated, do not edit)
 js/pages/*.js         the demos and games of each section
 
 images/landscape.png  the test image used by the site and the Python exercises
@@ -39,6 +42,8 @@ images/noisy.png      edges.png + Gaussian noise (sigma 45)
 images/edges.png      sharp shapes, thin lines and text, for edge detection
 tools/make_test_image.py   draws landscape.png and regenerates js/test-image.js
 tools/make_filter_images.py makes noisy.png and edges.png and regenerates js/filter-images.js
+images/sign*.png, images/scan_damaged.png  the cafe sign: clean, noisy, striped, both (section 7)
+tools/make_frequency_images.py makes the sign images and regenerates js/frequency-images.js
 tools/check_expected.py    prints what every exercise solution prints (to check the site)
 ```
 

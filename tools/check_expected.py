@@ -90,3 +90,28 @@ gx = cv2.Sobel(clean, cv2.CV_32F, 1, 0)
 gy = cv2.Sobel(clean, cv2.CV_32F, 0, 1)
 v, h = cv2.convertScaleAbs(gx), cv2.convertScaleAbs(gy)
 print(v[60, 20], h[60, 20], v[20, 60], h[20, 60])
+
+print("== Section 7 (frequency filtering exercises) ==")
+sign = cv2.imread(os.path.join(folder, "sign.png"), cv2.IMREAD_GRAYSCALE).astype(np.float32)
+hh, ww = sign.shape
+yy, xx = np.ogrid[:hh, :ww]
+dist = np.sqrt((xx - ww // 2) ** 2 + (yy - hh // 2) ** 2)
+low30 = np.exp(-dist ** 2 / (2 * 30 ** 2))
+dots = np.ones((hh, ww), np.float32)
+cv2.circle(dots, (ww // 2 - 40, hh // 2), 3, 0, -1)
+cv2.circle(dots, (ww // 2 + 40, hh // 2), 3, 0, -1)
+
+
+def freq_filter(img, mask):
+    return np.fft.ifft2(np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(img)) * mask)).real
+
+
+def score(img):
+    return round(float(np.abs(np.clip(img, 0, 255) - sign).mean()), 1)
+
+
+for name, mask in [("sign_noisy", low30), ("sign_stripes", dots), ("scan_damaged", dots * low30)]:
+    img = cv2.imread(os.path.join(folder, name + ".png"), cv2.IMREAD_GRAYSCALE).astype(np.float32)
+    print(name, score(img), score(freq_filter(img, mask)))
+print(round(float(freq_filter(sign, 1 - low30)[200, 260])))
+
